@@ -400,7 +400,14 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+  row-gap: 6px;
+  flex-wrap: wrap;
   margin-bottom: 6px;
+}
+
+/* 响应工具栏里的控件：Element Plus 默认把内联控件拉满宽度，这里固定尺寸 */
+.resp-toolbar .el-radio-group {
+  flex: 0 0 auto;
 }
 
 /* ---------- JSON 高亮 ---------- */
@@ -412,6 +419,41 @@ body {
   line-height: 1.6;
   white-space: pre;
   color: #111827;
+}
+
+/* 逐行渲染：支持折叠按钮与命中高亮 */
+.json-line {
+  display: block;
+}
+
+.json-caret {
+  display: inline-block;
+  width: 14px;
+  color: var(--el-text-color-placeholder);
+  user-select: none;
+}
+
+.json-foldable .json-caret {
+  cursor: pointer;
+}
+
+.json-foldable:hover .json-caret {
+  color: var(--el-color-primary);
+}
+
+.json-fold-hint {
+  color: var(--el-text-color-secondary);
+}
+
+.json-hit {
+  background: #fde68a;
+  border-radius: 2px;
+}
+
+/* 响应体搜索框：固定宽度，不跟随 Element Plus 的 100% */
+.resp-toolbar .resp-search {
+  width: 220px;
+  flex: 0 0 220px;
 }
 
 .json-key {
