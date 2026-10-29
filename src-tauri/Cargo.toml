@@ -1,6 +1,6 @@
 [package]
 name = "http-request-tool"
-version = "0.2.0"
+version = "0.3.0"
 description = "Portable lightweight HTTP request debug tool"
 edition = "2021"
 
