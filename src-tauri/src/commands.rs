@@ -33,6 +33,8 @@ pub struct ResponseView {
     pub status_text: String,
     pub http_version: String,
     pub headers: Vec<(String, String)>,
+    /// 实际发出的 URL（变量替换后），便于排查
+    pub request_url: String,
     /// 原文（超过上限时截断）
     pub body_text: String,
     /// JSON 美化后的文本（无法解析时与原文一致）
@@ -68,7 +70,7 @@ fn resolve_config(config: &RequestConfig, env: &HashMap<String, String>) -> Requ
     cfg
 }
 
-fn to_view(resp: &ResponseData) -> ResponseView {
+fn to_view(resp: &ResponseData, request_url: String) -> ResponseView {
     let truncated = resp.body.len() > MAX_BODY;
     let mut end = MAX_BODY.min(resp.body.len());
     while end > 0 && end < resp.body.len() && (resp.body[end] & 0xC0) == 0x80 {
@@ -92,6 +94,7 @@ fn to_view(resp: &ResponseData) -> ResponseView {
         status_text: resp.status_text.clone(),
         http_version: resp.http_version.clone(),
         headers: resp.headers.clone(),
+        request_url,
         body_text: text,
         body_pretty: pretty,
         body_len: resp.body.len(),
@@ -137,6 +140,7 @@ pub fn send_request(
     env_vars: HashMap<String, String>,
 ) -> Result<ResponseView, String> {
     let resolved = resolve_config(&config, &env_vars);
+    let request_url = client::build_url(&resolved);
     let resp = client::send(&resolved);
 
     {
@@ -152,7 +156,7 @@ pub fn send_request(
         let _ = db.add_history(&config, status, Some(resp.duration_ms));
     }
 
-    let view = to_view(&resp);
+    let view = to_view(&resp, request_url);
     *state.last_response.lock().map_err(err)? = Some(resp);
     Ok(view)
 }
