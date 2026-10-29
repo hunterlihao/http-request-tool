@@ -48,6 +48,9 @@ jobs:
       - name: 记录产物信息
         shell: pwsh
         run: |
-          $exe = Get-ChildItem "src-tauri\target\release\HttpTool.exe" -ErrorAction SilentlyContinue
-          if (-not $exe) { throw "没有产出 HttpTool.exe" }
-          "exe: {0:N0} KB" -f ($exe.Length / 1KB)
+          # --no-bundle 不会按 productName 重命名，产物是 Cargo 包名，所以这里自己找
+          $exe = Get-ChildItem "src-tauri\target\release\*.exe" |
+                 Where-Object { $_.Name -notmatch 'build-script' } |
+                 Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $exe) { throw "没有产出 exe" }
+          "exe: {0} / {1:N0} KB" -f $exe.Name, ($exe.Length / 1KB)

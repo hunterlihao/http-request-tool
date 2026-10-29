@@ -48,7 +48,12 @@ jobs:
         run: |
           $stage = "dist-portable"
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
-          Copy-Item "src-tauri\target\release\HttpTool.exe" $stage -Force
+          $exe = Get-ChildItem "src-tauri\target\release\*.exe" |
+                 Where-Object { $_.Name -notmatch 'build-script' } |
+                 Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $exe) { throw "没有产出 exe" }
+          "产物: $($exe.Name) → HttpTool.exe"
+          Copy-Item $exe.FullName (Join-Path $stage "HttpTool.exe") -Force
           Copy-Item README.md, LICENSE $stage -Force
           $zip = "HttpTool-${{ github.ref_name }}-portable-win-x64.zip"
           Compress-Archive -Path "$stage\*" -DestinationPath $zip -Force
