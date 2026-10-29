@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install frontend deps
+        run: npm ci
+
+      - name: Type-check + build frontend
+        run: npm run build
+
+      - name: Rust 静态检查
+        # 先不 -D warnings：等现有告警清零后再收紧，否则一上来就红。
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets
+
+      - name: Rust 单元测试
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: 验证能产出 exe（不出安装包，省时间）
+        run: npx tauri build --no-bundle
+
+      - name: 记录产物信息
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem "src-tauri\target\release\HttpTool.exe" -ErrorAction SilentlyContinue
+          if (-not $exe) { throw "没有产出 HttpTool.exe" }
+          "exe: {0:N0} KB" -f ($exe.Length / 1KB)

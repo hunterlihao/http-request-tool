@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: 校验版本号与 tag 一致
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}".TrimStart('v')
+          $cargo = (Select-String -Path src-tauri\Cargo.toml -Pattern '^version = "(.+)"' | Select-Object -First 1).Matches.Groups[1].Value
+          $pkg   = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          "tag=$tag cargo=$cargo package=$pkg"
+          if ($cargo -ne $tag) { throw "Cargo.toml 版本 $cargo 与 tag v$tag 不一致" }
+          if ($pkg   -ne $tag) { throw "package.json 版本 $pkg 与 tag v$tag 不一致" }
+
+      - name: Install frontend deps
+        run: npm ci
+
+      - name: Build 便携版 exe
+        run: npx tauri build --no-bundle
+
+      - name: 组装便携包
+        shell: pwsh
+        run: |
+          $stage = "dist-portable"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Copy-Item "src-tauri\target\release\HttpTool.exe" $stage -Force
+          Copy-Item README.md, LICENSE $stage -Force
+          $zip = "HttpTool-${{ github.ref_name }}-portable-win-x64.zip"
+          Compress-Archive -Path "$stage\*" -DestinationPath $zip -Force
+          "zip: {0:N0} KB" -f ((Get-Item $zip).Length / 1KB)
+          (Get-FileHash $zip -Algorithm SHA256).Hash | Out-File "$zip.sha256" -Encoding ascii
+
+      - name: 发布
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $zip = "HttpTool-$tag-portable-win-x64.zip"
+          gh release create $tag "$zip" "$zip.sha256" --title "HttpTool $tag" --generate-notes
