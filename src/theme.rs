@@ -132,7 +132,9 @@ pub fn status_color(code: u16) -> Color32 {
 
 /// 应用主题：加载字体 + 设置样式
 pub fn apply(ctx: &egui::Context) {
-    install_chinese_font(ctx);
+    if std::env::var_os("HTTP_TOOL_NO_CJK").is_none() {
+        install_chinese_font(ctx);
+    }
 
     let mut style = (*ctx.style()).clone();
     style.visuals = make_visuals();
@@ -148,9 +150,9 @@ pub fn apply(ctx: &egui::Context) {
     style.text_styles = [
         (
             TextStyle::Heading,
-            FontId::new(17.0, FontFamily::Proportional),
+            FontId::new(16.0, FontFamily::Proportional),
         ),
-        (TextStyle::Body, FontId::new(13.5, FontFamily::Proportional)),
+        (TextStyle::Body, FontId::new(13.0, FontFamily::Proportional)),
         (
             TextStyle::Button,
             FontId::new(13.0, FontFamily::Proportional),
@@ -169,9 +171,9 @@ pub fn apply(ctx: &egui::Context) {
 /// 加载系统中文字体（Windows：优先雅黑 ttc，回退黑体 ttf）
 fn install_chinese_font(ctx: &egui::Context) {
     const CANDIDATES: &[&str] = &[
+        "C:/Windows/Fonts/simhei.ttf",
         "C:/Windows/Fonts/msyh.ttc",
         "C:/Windows/Fonts/msyhl.ttc",
-        "C:/Windows/Fonts/simhei.ttf",
         "C:/Windows/Fonts/simsun.ttc",
     ];
 
@@ -189,10 +191,14 @@ fn install_chinese_font(ctx: &egui::Context) {
         return;
     };
 
+    // 泄漏为 'static：epaint 对 Cow::Owned 会按每个字号克隆一份字体数据，
+    // 而 Cow::Borrowed 只在内存中保留一份并以借用方式解析。
+    let leaked: &'static [u8] = Box::leak(bytes.into_boxed_slice());
+
     let mut fonts = FontDefinitions::default();
     fonts
         .font_data
-        .insert("cjk".into(), FontData::from_owned(bytes));
+        .insert("cjk".into(), FontData::from_static(leaked));
 
     if let Some(list) = fonts.families.get_mut(&FontFamily::Proportional) {
         list.push("cjk".into());

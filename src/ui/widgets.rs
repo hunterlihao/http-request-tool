@@ -44,12 +44,12 @@ pub fn empty_state(ui: &mut egui::Ui, title: &str, desc: &str) {
     ui.vertical_centered(|ui| {
         ui.label(
             RichText::new(title)
-                .size(13.5)
+                .size(13.0)
                 .color(theme::text_dim())
                 .strong(),
         );
         ui.add_space(6.0);
-        ui.label(RichText::new(desc).size(12.0).color(theme::text_muted()));
+        ui.label(RichText::new(desc).size(13.0).color(theme::text_muted()));
     });
     ui.add_space(16.0);
 }
@@ -71,7 +71,7 @@ pub fn accent_button(ui: &mut egui::Ui, text: &str, enabled: bool) -> Response {
 
 /// 次要按钮（白底细描边）
 pub fn subtle_button(ui: &mut egui::Ui, text: &str) -> Response {
-    let btn = egui::Button::new(RichText::new(text).color(theme::text()).size(12.5))
+    let btn = egui::Button::new(RichText::new(text).color(theme::text()).size(13.0))
         .fill(theme::panel())
         .stroke(Stroke::new(1.0, theme::border()))
         .rounding(Rounding::same(8.0))
@@ -172,7 +172,7 @@ pub fn kv_editor(
     fn header(ui: &mut egui::Ui, text: &str, w: f32) {
         ui.add_sized(
             [w, 16.0],
-            egui::Label::new(RichText::new(text).size(11.0).color(theme::text_dim())),
+            egui::Label::new(RichText::new(text).size(11.5).color(theme::text_dim())),
         );
     }
 

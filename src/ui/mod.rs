@@ -92,7 +92,7 @@ fn top_bar(ctx: &egui::Context, state: &mut AppState) {
                 ui.add_space(8.0);
                 ui.label(
                     RichText::new("HTTP 请求工具")
-                        .size(15.0)
+                        .size(16.0)
                         .strong()
                         .color(theme::text()),
                 );
@@ -124,7 +124,7 @@ fn top_bar(ctx: &egui::Context, state: &mut AppState) {
                         })
                         .collect();
                     let btn = widgets::select_button(
-                        RichText::new(format!("环境 · {}  ▼", state.current_env)).size(12.5),
+                        RichText::new(format!("环境 · {}  ▼", state.current_env)).size(13.0),
                         168.0,
                     );
                     if let Some(i) =

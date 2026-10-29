@@ -109,7 +109,7 @@ fn history_panel(ui: &mut egui::Ui, state: &mut AppState) {
                         [46.0, 16.0],
                         egui::Label::new(
                             RichText::new(item.config.method.as_str())
-                                .size(10.5)
+                                .size(11.5)
                                 .monospace()
                                 .color(mc)
                                 .strong(),
@@ -118,7 +118,7 @@ fn history_panel(ui: &mut egui::Ui, state: &mut AppState) {
                     let label = ui.add(
                         egui::Label::new(
                             RichText::new(truncate(&item.config.url, 34))
-                                .size(12.0)
+                                .size(13.0)
                                 .color(theme::text()),
                         )
                         .sense(egui::Sense::click())
@@ -127,7 +127,7 @@ fn history_panel(ui: &mut egui::Ui, state: &mut AppState) {
                     if let Some(code) = item.status_code {
                         ui.label(
                             RichText::new(code.to_string())
-                                .size(10.5)
+                                .size(11.5)
                                 .monospace()
                                 .color(theme::status_color(code)),
                         );
@@ -194,7 +194,7 @@ fn collections_panel(ui: &mut egui::Ui, state: &mut AppState) {
         // 删除当前集合
         if ui
             .add(
-                egui::Button::new(RichText::new("✕").size(12.0).color(theme::error()))
+                egui::Button::new(RichText::new("✕").size(13.0).color(theme::error()))
                     .fill(Color32::TRANSPARENT)
                     .frame(false),
             )
@@ -265,7 +265,7 @@ fn collections_panel(ui: &mut egui::Ui, state: &mut AppState) {
                         [46.0, 16.0],
                         egui::Label::new(
                             RichText::new(req.config.method.as_str())
-                                .size(10.5)
+                                .size(11.5)
                                 .monospace()
                                 .color(mc)
                                 .strong(),
@@ -273,7 +273,7 @@ fn collections_panel(ui: &mut egui::Ui, state: &mut AppState) {
                     );
                     let label = ui.add(
                         egui::Label::new(
-                            RichText::new(truncate(&req.name, 30)).size(12.0).color(theme::text()),
+                            RichText::new(truncate(&req.name, 30)).size(13.0).color(theme::text()),
                         )
                         .sense(egui::Sense::click())
                         .truncate(),
@@ -284,7 +284,7 @@ fn collections_panel(ui: &mut egui::Ui, state: &mut AppState) {
                     widgets::right_aligned(ui, 24.0, |ui| {
                         if ui
                             .add(
-                                egui::Button::new(RichText::new("✕").size(11.0).color(theme::text_dim()))
+                                egui::Button::new(RichText::new("✕").size(11.5).color(theme::text_dim()))
                                     .fill(Color32::TRANSPARENT)
                                     .frame(false),
                             )
@@ -379,7 +379,7 @@ fn env_panel(ui: &mut egui::Ui, state: &mut AppState) {
         if state.current_env != "global"
             && ui
                 .add(
-                    egui::Button::new(RichText::new("✕").size(12.0).color(theme::error()))
+                    egui::Button::new(RichText::new("✕").size(13.0).color(theme::error()))
                         .fill(Color32::TRANSPARENT)
                         .frame(false),
                 )
@@ -445,11 +445,11 @@ fn env_panel(ui: &mut egui::Ui, state: &mut AppState) {
                 .show(ui, |ui| {
                     ui.add_sized(
                         [key_w, 16.0],
-                        egui::Label::new(RichText::new("变量").size(11.0).color(theme::text_dim())),
+                        egui::Label::new(RichText::new("变量").size(11.5).color(theme::text_dim())),
                     );
                     ui.add_sized(
                         [val_w, 16.0],
-                        egui::Label::new(RichText::new("值").size(11.0).color(theme::text_dim())),
+                        egui::Label::new(RichText::new("值").size(11.5).color(theme::text_dim())),
                     );
                     ui.label("");
                     ui.end_row();

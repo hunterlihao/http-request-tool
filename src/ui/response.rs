@@ -56,7 +56,7 @@ fn status_bar(ui: &mut egui::Ui, state: &mut AppState, resp: &ResponseData) {
                 .add(
                     egui::Button::new(
                         RichText::new("Body")
-                            .size(12.0)
+                            .size(13.0)
                             .color(if body_sel { theme::accent() } else { theme::text_dim() }),
                     )
                     .fill(if body_sel {
@@ -76,7 +76,7 @@ fn status_bar(ui: &mut egui::Ui, state: &mut AppState, resp: &ResponseData) {
                 .add(
                     egui::Button::new(
                         RichText::new(format!("Headers ({})", resp.headers.len()))
-                            .size(12.0)
+                            .size(13.0)
                             .color(if hdr_sel { theme::accent() } else { theme::text_dim() }),
                     )
                     .fill(if hdr_sel {
@@ -116,7 +116,7 @@ fn body_view(ui: &mut egui::Ui, state: &mut AppState, resp: &ResponseData) {
             if ui
                 .add(
                     egui::Button::new(
-                        RichText::new("格式化").size(12.0).color(if fmt { theme::accent() } else { theme::text_dim() }),
+                        RichText::new("格式化").size(13.0).color(if fmt { theme::accent() } else { theme::text_dim() }),
                     )
                     .fill(if fmt { theme::accent().gamma_multiply(0.12) } else { Color32::TRANSPARENT })
                     .rounding(Rounding::same(8.0))
@@ -129,7 +129,7 @@ fn body_view(ui: &mut egui::Ui, state: &mut AppState, resp: &ResponseData) {
             if ui
                 .add(
                     egui::Button::new(
-                        RichText::new("原始").size(12.0).color(if !fmt { theme::accent() } else { theme::text_dim() }),
+                        RichText::new("原始").size(13.0).color(if !fmt { theme::accent() } else { theme::text_dim() }),
                     )
                     .fill(if !fmt { theme::accent().gamma_multiply(0.12) } else { Color32::TRANSPARENT })
                     .rounding(Rounding::same(8.0))
@@ -249,10 +249,10 @@ fn headers_view(ui: &mut egui::Ui, resp: &ResponseData) {
                         ui.label(
                             RichText::new(k)
                                 .monospace()
-                                .size(12.0)
+                                .size(13.0)
                                 .color(theme::accent()),
                         );
-                        ui.label(RichText::new(v).monospace().size(12.0).color(theme::text()));
+                        ui.label(RichText::new(v).monospace().size(13.0).color(theme::text()));
                         ui.end_row();
                     }
                 });
