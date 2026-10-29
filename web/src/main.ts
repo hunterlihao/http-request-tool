@@ -1,9 +1,8 @@
-import ElementPlus from 'element-plus'
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { createApp } from 'vue'
 
-import 'element-plus/dist/index.css'
+// 组件样式由 unplugin-vue-components 按需注入；ElMessage 是函数式调用，需手动引入样式
+import 'element-plus/es/components/message/style/css'
 import './styles.css'
 import App from './App.vue'
 
-createApp(App).use(ElementPlus, { locale: zhCn }).mount('#app')
+createApp(App).mount('#app')
