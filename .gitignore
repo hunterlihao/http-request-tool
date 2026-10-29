@@ -15,3 +15,6 @@ web/dist
 # IDE / 本地笔记
 .trae/
 *.log
+
+# 本地 esbuild/打包临时目录（本机 %TEMP% 受限时用）
+.tmp/
