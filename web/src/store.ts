@@ -359,6 +359,10 @@ export async function sendRequest() {
   state.sending = true
   try {
     const resp = await api.sendRequest(clone(state.config), state.envMap)
+    if (resp.error === '请求已取消') {
+      toast('已取消本次请求', { type: 'info' })
+      return
+    }
     state.response = resp
     state.responseTab = 'body'
     await refreshHistory()
@@ -366,6 +370,15 @@ export async function sendRequest() {
     toast(`请求失败：${String(e)}`, { type: 'error', duration: 3500 })
   } finally {
     state.sending = false
+  }
+}
+
+/** 中止正在进行的请求 */
+export async function cancelRequest() {
+  try {
+    await api.cancelRequest()
+  } catch (e) {
+    toast(`取消失败：${String(e)}`, { type: 'error' })
   }
 }
 

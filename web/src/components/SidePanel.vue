@@ -105,6 +105,7 @@ function addEnvVar() {
               <el-button text size="small" @click="clearHistory">清空</el-button>
             </div>
           </div>
+          <span class="hint">历史只保留最近 500 条，且不记录认证信息</span>
           <div class="list">
             <div
               v-for="item in filteredHistory"

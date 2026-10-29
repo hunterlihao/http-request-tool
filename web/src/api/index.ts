@@ -28,6 +28,7 @@ export const api = {
   // 请求
   sendRequest: (config: RequestConfig, envVars: Record<string, string>) =>
     call<ResponseView>('send_request', { config, envVars }),
+  cancelRequest: () => call<void>('cancel_request'),
   undefinedVars: (config: RequestConfig, envVars: Record<string, string>) =>
     call<string[]>('undefined_vars', { config, envVars }),
   saveResponseFile: () => call<string | null>('save_response_file'),

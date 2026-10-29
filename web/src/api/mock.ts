@@ -85,6 +85,7 @@ function mockResponse(config: RequestConfig, env: Record<string, string>): Respo
     body_pretty: pretty,
     body_len: text.length,
     truncated: false,
+    is_binary: false,
     duration_ms: 18,
     content_type: 'application/json; charset=utf-8',
     error: null,
@@ -110,13 +111,15 @@ export async function handle(cmd: string, args: Record<string, unknown> = {}): P
       persist()
       return resp
     }
+    case 'cancel_request':
+      return null
     case 'undefined_vars': {
       const config = args.config as RequestConfig
       const env = (args.envVars ?? {}) as Record<string, string>
       const text = JSON.stringify(config)
       const names = new Set<string>()
       for (const m of text.matchAll(/\{\{\s*([\w.-]+)\s*\}\}/g)) {
-        if (!(m[1] in env)) names.add(m[1])
+        if (!m[1].startsWith('$') && !(m[1] in env)) names.add(m[1])
       }
       return [...names]
     }

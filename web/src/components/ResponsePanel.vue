@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Download, DocumentCopy } from '@element-plus/icons-vue'
+import { Download, DocumentCopy, Picture } from '@element-plus/icons-vue'
 import { computed } from 'vue'
 
 import { humanSize, statusColor } from '@/api/types'
@@ -10,7 +10,7 @@ const resp = computed(() => state.response)
 
 const isJson = computed(() => {
   const r = resp.value
-  if (!r || r.truncated || r.error) return false
+  if (!r || r.truncated || r.error || r.is_binary) return false
   const ct = (r.content_type || '').toLowerCase()
   if (ct.includes('json')) return true
   try {
@@ -78,7 +78,13 @@ const displayText = computed(() => {
         <span class="meta-chip">{{ humanSize(resp.body_len) }}</span>
         <span v-if="resp.http_version" class="meta-chip">{{ resp.http_version }}</span>
         <div class="meta-right">
-          <el-button text size="small" :icon="DocumentCopy" @click="copyResponseBody">
+          <el-button
+            v-if="!resp.is_binary"
+            text
+            size="small"
+            :icon="DocumentCopy"
+            @click="copyResponseBody"
+          >
             复制
           </el-button>
           <el-button text size="small" :icon="Download" @click="saveResponseBody">下载</el-button>
@@ -98,7 +104,14 @@ const displayText = computed(() => {
           </div>
 
           <div class="scroll-y" style="height: 100%">
-            <span v-if="!displayText.trim()" class="hint">（空响应体）</span>
+            <div v-if="resp.is_binary" class="body-empty">
+              <el-icon class="body-empty__icon" :size="22"><Picture /></el-icon>
+              <span class="body-empty__title">二进制响应，不做文本预览</span>
+              <span class="body-empty__hint">
+                {{ resp.content_type || '未知类型' }} · {{ humanSize(resp.body_len) }}，可点右上角「下载」保存
+              </span>
+            </div>
+            <span v-else-if="!displayText.trim()" class="hint">（空响应体）</span>
             <JsonView v-else-if="isJson && !state.rawView" :text="displayText" />
             <pre v-else class="raw-view">{{ displayText }}</pre>
           </div>

@@ -15,7 +15,7 @@ import {
   METHOD_LABEL,
 } from '@/api/types'
 import KeyValueTable from '@/components/KeyValueTable.vue'
-import { copyCurl, importCurl, sendRequest, state } from '@/store'
+import { cancelRequest, copyCurl, importCurl, sendRequest, state } from '@/store'
 
 const curlDialog = ref(false)
 const curlText = ref('')
@@ -112,8 +112,11 @@ function importParamsFromUrl() {
         @keyup.enter="sendRequest"
       />
 
-      <el-button type="primary" :loading="state.sending" @click="sendRequest">
-        {{ state.sending ? '发送中…' : '发送' }}
+      <el-button
+        :type="state.sending ? 'danger' : 'primary'"
+        @click="state.sending ? cancelRequest() : sendRequest()"
+      >
+        {{ state.sending ? '取消' : '发送' }}
       </el-button>
     </div>
 

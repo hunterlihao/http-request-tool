@@ -46,6 +46,8 @@ export interface ResponseView {
   body_pretty: string
   body_len: number
   truncated: boolean
+  /** 二进制响应（图片 / 压缩包等），body_text 为空，只能下载 */
+  is_binary: boolean
   duration_ms: number
   content_type: string
   error: string | null
