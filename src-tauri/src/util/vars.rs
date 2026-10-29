@@ -44,15 +44,66 @@ fn random_uuid() -> String {
 }
 
 /// 内置动态变量：以 `$` 开头，不需要在环境里定义
-fn builtin_value(name: &str) -> Option<String> {
+///
+/// 支持函数形式，如 `{{$hmacSha256(secret, body)}}`。
+fn builtin_value(raw: &str) -> Option<String> {
+    let (name, args) = split_call(raw);
+    let arg = |i: usize| args.as_ref().and_then(|a| a.get(i)).copied();
+
     match name {
         "$timestamp" => Some(chrono::Local::now().timestamp().to_string()),
         "$timestampMs" => Some(chrono::Local::now().timestamp_millis().to_string()),
         "$isoTimestamp" => Some(chrono::Local::now().to_rfc3339()),
         "$guid" | "$uuid" => Some(random_uuid()),
         "$randomInt" => Some((random_u64() % 1000).to_string()),
+        "$base64" => arg(0).map(|v| base64_encode(v.as_bytes())),
+        "$md5" => arg(0).map(md5_hex),
+        "$sha256" => arg(0).map(sha256_hex),
+        "$hmacSha256" => match (arg(0), arg(1)) {
+            (Some(key), Some(text)) => hmac_sha256_hex(key, text),
+            _ => None,
+        },
         _ => None,
     }
+}
+
+/// 拆分 `name(a, b)` 形式的调用，返回 (函数名, 参数列表)
+fn split_call(raw: &str) -> (&str, Option<Vec<&str>>) {
+    if let Some(open) = raw.find('(') {
+        if raw.trim_end().ends_with(')') {
+            let inner = &raw[open + 1..raw.rfind(')').unwrap_or(raw.len())];
+            let args = inner.split(',').map(|s| s.trim()).collect();
+            return (&raw[..open], Some(args));
+        }
+    }
+    (raw, None)
+}
+
+fn to_hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+fn md5_hex(text: &str) -> String {
+    use md5::{Digest, Md5};
+    to_hex(&Md5::digest(text.as_bytes()))
+}
+
+fn sha256_hex(text: &str) -> String {
+    use sha2::{Digest, Sha256};
+    to_hex(&Sha256::digest(text.as_bytes()))
+}
+
+fn hmac_sha256_hex(key: &str, text: &str) -> Option<String> {
+    use hmac::{Hmac, Mac};
+    use sha2::Sha256;
+    let mut mac = Hmac::<Sha256>::new_from_slice(key.as_bytes()).ok()?;
+    mac.update(text.as_bytes());
+    Some(to_hex(&mac.finalize().into_bytes()))
+}
+
+fn base64_encode(data: &[u8]) -> String {
+    use base64::Engine;
+    base64::engine::general_purpose::STANDARD.encode(data)
 }
 
 /// 将文本中的 `{{key}}` 替换为环境变量值（`{{$xxx}}` 为内置动态变量）。
@@ -171,5 +222,27 @@ mod tests {
     fn test_builtin_not_reported_as_missing() {
         assert_eq!(collect_var_names("{{$guid}}"), Vec::<String>::new());
         assert_eq!(collect_var_names("{{$guid}}/{{x}}"), vec!["x"]);
+    }
+
+    #[test]
+    fn test_hash_builtins() {
+        let v = HashMap::new();
+        assert_eq!(
+            replace_vars("{{$md5(abc)}}", &v),
+            "900150983cd24fb0d6963f7d28e17f72"
+        );
+        assert_eq!(
+            replace_vars("{{$sha256(abc)}}", &v),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+        assert_eq!(replace_vars("{{$base64(hello)}}", &v), "aGVsbG8=");
+        // 标准测试向量
+        assert_eq!(
+            replace_vars(
+                "{{$hmacSha256(key, The quick brown fox jumps over the lazy dog)}}",
+                &v
+            ),
+            "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8"
+        );
     }
 }

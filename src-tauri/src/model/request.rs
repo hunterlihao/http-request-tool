@@ -165,12 +165,22 @@ pub struct RequestConfig {
     pub timeout_secs: u64,
     #[serde(default)]
     pub proxy: String,
-    /// multipart 文件路径
+    /// multipart 文件路径（旧字段，保留兼容）
     #[serde(default)]
     pub file_path: String,
+    /// multipart 文件字段名
+    #[serde(default = "default_file_field")]
+    pub file_field: String,
+    /// multipart 要上传的文件（可多选）
+    #[serde(default)]
+    pub file_paths: Vec<String>,
     /// 是否启用 proxy（空字符串视为未启用）
     #[serde(default)]
     pub use_custom_proxy: bool,
+}
+
+fn default_file_field() -> String {
+    "file".to_string()
 }
 
 fn default_timeout() -> u64 {
@@ -193,6 +203,8 @@ impl Default for RequestConfig {
             timeout_secs: default_timeout(),
             proxy: String::new(),
             file_path: String::new(),
+            file_field: default_file_field(),
+            file_paths: Vec::new(),
             use_custom_proxy: false,
         }
     }

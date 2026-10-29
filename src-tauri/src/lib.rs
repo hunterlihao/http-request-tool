@@ -44,6 +44,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::send_request,
             commands::cancel_request,
+            commands::cookies_clear,
             commands::undefined_vars,
             commands::save_response_file,
             commands::get_last_config,
@@ -70,6 +71,7 @@ pub fn run() {
             commands::curl_export,
             commands::curl_import,
             commands::pick_file,
+            commands::pick_files,
         ])
         .run(tauri::generate_context!())
         .expect("启动桌面应用失败");

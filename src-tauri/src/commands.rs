@@ -206,6 +206,13 @@ pub fn cancel_request(state: State<'_, AppState>) -> Result<(), String> {
     Ok(())
 }
 
+/// 清空本次运行中自动保存的 Cookie
+#[tauri::command]
+pub fn cookies_clear() -> Result<(), String> {
+    client::clear_cookies();
+    Ok(())
+}
+
 /// 当前请求中引用、但当前环境未定义的变量
 #[tauri::command]
 pub fn undefined_vars(config: RequestConfig, env_vars: HashMap<String, String>) -> Vec<String> {
@@ -452,4 +459,13 @@ pub fn pick_file() -> Option<String> {
     rfd::FileDialog::new()
         .pick_file()
         .map(|p| p.display().to_string())
+}
+
+/// 多选文件（multipart 用）
+#[tauri::command]
+pub fn pick_files() -> Vec<String> {
+    rfd::FileDialog::new()
+        .pick_files()
+        .map(|paths| paths.into_iter().map(|p| p.display().to_string()).collect())
+        .unwrap_or_default()
 }

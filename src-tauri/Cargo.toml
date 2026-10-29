@@ -15,7 +15,7 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-reqwest = { version = "0.12", default-features = false, features = ["json", "multipart", "native-tls", "stream", "gzip", "deflate", "http2", "charset"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "multipart", "native-tls", "stream", "gzip", "deflate", "http2", "charset", "cookies"] }
 tokio = { version = "1", features = ["sync", "fs", "time", "macros"] }
 rusqlite = { version = "0.32", features = ["bundled"] }
 chrono = "0.4"
@@ -23,6 +23,9 @@ anyhow = "1"
 rfd = "0.15"
 url = "2"
 base64 = "0.22"
+md-5 = "0.10"
+sha2 = "0.10"
+hmac = "0.12"
 
 [profile.release]
 opt-level = "s"

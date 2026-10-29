@@ -1,10 +1,11 @@
 //! HTTP 请求客户端封装（reqwest async）
 
 use std::collections::HashMap;
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock, RwLock};
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result};
+use reqwest::cookie::Jar;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use reqwest::multipart;
 use reqwest::Client;
@@ -17,6 +18,34 @@ pub const MAX_BODY_READ: usize = 8 * 1024 * 1024;
 
 /// 用户主动取消时的错误信息（前端据此区分普通失败）
 pub const CANCELLED: &str = "请求已取消";
+
+/// 客户端缓存（按连接参数复用连接池）
+static CLIENT_CACHE: OnceLock<Mutex<HashMap<String, Client>>> = OnceLock::new();
+
+/// 会话 Cookie：本次运行内自动保存并回带
+static COOKIE_JAR: OnceLock<RwLock<Arc<Jar>>> = OnceLock::new();
+
+fn cookie_jar() -> Arc<Jar> {
+    COOKIE_JAR
+        .get_or_init(|| RwLock::new(Arc::new(Jar::default())))
+        .read()
+        .map(|jar| jar.clone())
+        .unwrap_or_else(|_| Arc::new(Jar::default()))
+}
+
+/// 清空会话 Cookie（同时丢弃缓存客户端，让新 jar 生效）
+pub fn clear_cookies() {
+    if let Some(lock) = COOKIE_JAR.get() {
+        if let Ok(mut jar) = lock.write() {
+            *jar = Arc::new(Jar::default());
+        }
+    }
+    if let Some(cache) = CLIENT_CACHE.get() {
+        if let Ok(mut map) = cache.lock() {
+            map.clear();
+        }
+    }
+}
 
 /// 构造基础 URL：params 追加到 query
 pub(crate) fn build_url(config: &RequestConfig) -> String {
@@ -50,8 +79,6 @@ pub(crate) fn build_url(config: &RequestConfig) -> String {
 
 /// 构造（并复用）reqwest 客户端：相同连接参数共享连接池，避免每次请求重新握手
 fn client_for(config: &RequestConfig) -> Result<Client> {
-    static CACHE: OnceLock<Mutex<HashMap<String, Client>>> = OnceLock::new();
-
     let timeout = if config.timeout_secs == 0 {
         30
     } else {
@@ -67,14 +94,17 @@ fn client_for(config: &RequestConfig) -> Result<Client> {
         config.insecure_skip_verify, config.follow_redirects
     );
 
-    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    let cache = CLIENT_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
     if let Ok(map) = cache.lock() {
         if let Some(client) = map.get(&key) {
             return Ok(client.clone());
         }
     }
 
-    let mut builder = Client::builder().timeout(Duration::from_secs(timeout));
+    let mut builder = Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        // 会话内自动保存并把 Cookie 回带到后续请求
+        .cookie_provider(cookie_jar());
     if config.insecure_skip_verify {
         builder = builder.danger_accept_invalid_certs(true);
     }
@@ -331,25 +361,40 @@ pub async fn send(config: &RequestConfig, cancel: &Notify) -> ResponseData {
             for f in config.form_fields.iter().filter(|f| f.enabled && !f.key.is_empty()) {
                 form = form.text(f.key.clone(), f.value.clone());
             }
-            if !config.file_path.trim().is_empty() {
-                let path = config.file_path.trim();
-                if std::path::Path::new(path).is_file() {
-                    let fname = path
-                        .rsplit(['/', '\\'])
-                        .next()
-                        .unwrap_or("file")
-                        .to_string();
-                    match tokio::fs::read(path).await {
-                        Ok(bytes) => {
-                            form = form.part("file", multipart::Part::bytes(bytes).file_name(fname));
-                        }
-                        Err(e) => {
-                            return ResponseData {
-                                error: Some(format!("读取上传文件失败：{e}")),
-                                duration_ms: start.elapsed().as_millis(),
-                                ..Default::default()
-                            };
-                        }
+            // 兼容旧的单文件字段：file_paths 为空时退回 file_path
+            let mut paths: Vec<&str> = config
+                .file_paths
+                .iter()
+                .map(|p| p.trim())
+                .filter(|p| !p.is_empty())
+                .collect();
+            if paths.is_empty() && !config.file_path.trim().is_empty() {
+                paths.push(config.file_path.trim());
+            }
+            let field = if config.file_field.trim().is_empty() {
+                "file".to_string()
+            } else {
+                config.file_field.trim().to_string()
+            };
+            for path in paths {
+                if !std::path::Path::new(path).is_file() {
+                    continue;
+                }
+                let fname = path
+                    .rsplit(['/', '\\'])
+                    .next()
+                    .unwrap_or("file")
+                    .to_string();
+                match tokio::fs::read(path).await {
+                    Ok(bytes) => {
+                        form = form.part(field.clone(), multipart::Part::bytes(bytes).file_name(fname));
+                    }
+                    Err(e) => {
+                        return ResponseData {
+                            error: Some(format!("读取上传文件失败：{e}")),
+                            duration_ms: start.elapsed().as_millis(),
+                            ..Default::default()
+                        };
                     }
                 }
             }
