@@ -36,6 +36,8 @@ export const state = reactive({
   envNames: ['global'] as string[],
   currentEnv: 'global',
   envVars: [] as EnvVar[],
+  /** 与 envVars 一一对应的已落库键名，用于改键时删除旧记录 */
+  envOriginals: [] as string[],
   envMap: {} as Record<string, string>,
 
   collections: [] as Collection[],
@@ -100,6 +102,7 @@ export async function loadEnv(name: string) {
     state.currentEnv = name
     const list = await api.envVars(name)
     state.envVars = list
+    state.envOriginals = list.map((v) => v.key)
     rebuildEnvMap()
   } catch (e) {
     toast(`加载环境变量失败：${String(e)}`, { type: 'error' })
@@ -116,11 +119,20 @@ export function rebuildEnvMap() {
 }
 
 /** 编辑环境变量：写入后在变更处调用持久化 */
-export async function persistEnvVar(key: string, value: string) {
-  const name = key.trim()
+export async function persistEnvVar(index: number) {
+  const item = state.envVars[index]
+  if (!item) return
+  const name = item.key.trim()
   if (!name) return
+  const previous = state.envOriginals[index] ?? ''
   try {
-    await api.envSet(state.currentEnv, name, value)
+    // 改名时先删掉旧键，否则库里会同时留下新旧两条
+    if (previous && previous !== name) {
+      await api.envDelete(state.currentEnv, previous)
+    }
+    await api.envSet(state.currentEnv, name, item.value)
+    item.key = name
+    state.envOriginals[index] = name
     rebuildEnvMap()
   } catch (e) {
     toast(`保存变量失败：${String(e)}`, { type: 'error' })
@@ -131,6 +143,7 @@ export async function removeEnvVar(index: number) {
   const item = state.envVars[index]
   if (!item) return
   state.envVars.splice(index, 1)
+  state.envOriginals.splice(index, 1)
   rebuildEnvMap()
   if (item.key.trim()) {
     try {

@@ -81,6 +81,7 @@ async function submitEnv() {
 
 function addEnvVar() {
   state.envVars.push({ env_name: state.currentEnv, key: '', value: '' })
+  state.envOriginals.push('')
 }
 </script>
 
@@ -269,6 +270,7 @@ function addEnvVar() {
           </div>
 
           <span class="hint" v-text="'在 URL / Header / Body 中用 {{变量名}} 引用'"></span>
+          <span class="hint" v-text="'内置：{{$timestamp}} {{$guid}} {{$randomInt}}'"></span>
 
           <div class="list">
             <div v-for="(item, index) in state.envVars" :key="`${item.key}-${index}`" class="env-grid-row">
@@ -277,14 +279,14 @@ function addEnvVar() {
                 size="small"
                 placeholder="key"
                 class="mono"
-                @change="persistEnvVar(item.key, item.value)"
+                @change="persistEnvVar(index)"
               />
               <el-input
                 v-model="item.value"
                 size="small"
                 placeholder="value"
                 class="mono"
-                @change="persistEnvVar(item.key, item.value)"
+                @change="persistEnvVar(index)"
               />
               <el-button text size="small" :icon="Delete" @click="removeEnvVar(index)" />
             </div>
