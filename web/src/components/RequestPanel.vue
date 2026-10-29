@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FolderOpened, MagicStick, Upload } from '@element-plus/icons-vue'
+import { DocumentDelete, FolderOpened, MagicStick, Upload } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { computed, ref } from 'vue'
 
@@ -204,14 +204,11 @@ function importParamsFromUrl() {
             </el-button>
           </div>
 
-          <el-alert
-            v-if="state.config.body_type === 'None'"
-            type="info"
-            :closable="false"
-            show-icon
-            title="无请求体"
-            description="选择上方的 Body 类型以编辑请求内容"
-          />
+          <div v-if="state.config.body_type === 'None'" class="body-empty">
+            <el-icon class="body-empty__icon" :size="22"><DocumentDelete /></el-icon>
+            <span class="body-empty__title">本次请求不携带 Body</span>
+            <span class="body-empty__hint">需要时在上方切换到 JSON、Text、Form 等类型</span>
+          </div>
 
           <template
             v-else-if="state.config.body_type === 'Json' || state.config.body_type === 'Text'"
