@@ -11,3 +11,7 @@ http-tool.db-wal
 node_modules
 web/dist
 *.local
+
+# IDE / 本地笔记
+.trae/
+*.log
