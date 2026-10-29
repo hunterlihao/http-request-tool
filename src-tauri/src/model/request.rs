@@ -138,7 +138,7 @@ pub struct Auth {
 }
 
 /// 一组请求配置（可保存到集合 / 历史，也可作为当前编辑状态）
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RequestConfig {
     pub method: Method,
     pub url: String,
@@ -175,6 +175,27 @@ pub struct RequestConfig {
 
 fn default_timeout() -> u64 {
     30
+}
+
+impl Default for RequestConfig {
+    fn default() -> Self {
+        Self {
+            method: Method::Get,
+            url: String::new(),
+            params: Vec::new(),
+            headers: Vec::new(),
+            body_type: BodyType::None,
+            body: String::new(),
+            form_fields: Vec::new(),
+            auth: Auth::default(),
+            insecure_skip_verify: false,
+            follow_redirects: true,
+            timeout_secs: default_timeout(),
+            proxy: String::new(),
+            file_path: String::new(),
+            use_custom_proxy: false,
+        }
+    }
 }
 
 impl RequestConfig {

@@ -1,6 +1,13 @@
 /target
+/src-tauri/target
+/src-tauri/gen
 
 # 便携版运行时数据库（不纳入版本库）
 http-tool.db
 http-tool.db-shm
 http-tool.db-wal
+
+# 前端
+node_modules
+web/dist
+*.local
