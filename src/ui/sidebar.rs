@@ -164,21 +164,26 @@ fn collections_panel(ui: &mut egui::Ui, state: &mut AppState) {
             .find(|c| Some(c.id) == state.selected_collection)
             .map(|c| c.name.clone())
             .unwrap_or_else(|| "（无集合）".to_string());
-        egui::ComboBox::from_id_salt("collection_combo")
-            .width(ui.available_width() - 34.0)
-            .selected_text(RichText::new(current).size(13.0))
-            .show_ui(ui, |ui| {
-                let cols: Vec<_> = state.collections.clone();
-                for c in cols {
-                    if ui
-                        .selectable_label(Some(c.id) == state.selected_collection, &c.name)
-                        .clicked()
-                    {
-                        state.selected_collection = Some(c.id);
-                        state.reload_saved_requests();
-                    }
-                }
-            });
+        let width = (ui.available_width() - 34.0).max(120.0);
+        let items: Vec<(egui::WidgetText, bool)> = state
+            .collections
+            .iter()
+            .map(|c| {
+                (
+                    RichText::new(&c.name).size(13.0).into(),
+                    Some(c.id) == state.selected_collection,
+                )
+            })
+            .collect();
+        let btn = widgets::select_button(
+            RichText::new(format!("{}  ▾", truncate(&current, 16))).size(13.0),
+            width,
+        );
+        if let Some(i) = widgets::select_popup(ui, "collection_select", width, btn, &items) {
+            let id = state.collections[i].id;
+            state.selected_collection = Some(id);
+            state.reload_saved_requests();
+        }
         // 删除当前集合
         if ui
             .add(
@@ -344,17 +349,25 @@ fn export_collection(state: &mut AppState) {
 fn env_panel(ui: &mut egui::Ui, state: &mut AppState) {
     // 环境选择
     ui.horizontal(|ui| {
-        egui::ComboBox::from_id_salt("env_combo")
-            .width(ui.available_width() - 34.0)
-            .selected_text(RichText::new(format!("{}", state.current_env)).size(13.0))
-            .show_ui(ui, |ui| {
-                let names: Vec<_> = state.env_names.clone();
-                for n in names {
-                    if ui.selectable_label(state.current_env == n, &n).clicked() {
-                        state.load_env(&n);
-                    }
-                }
-            });
+        let width = (ui.available_width() - 34.0).max(120.0);
+        let items: Vec<(egui::WidgetText, bool)> = state
+            .env_names
+            .iter()
+            .map(|n| {
+                (
+                    RichText::new(n).size(13.0).into(),
+                    *n == state.current_env,
+                )
+            })
+            .collect();
+        let btn = widgets::select_button(
+            RichText::new(format!("{}  ▾", truncate(&state.current_env, 16))).size(13.0),
+            width,
+        );
+        if let Some(i) = widgets::select_popup(ui, "env_select", width, btn, &items) {
+            let name = state.env_names[i].clone();
+            state.load_env(&name);
+        }
         // 删除当前环境（global 不可删）
         if state.current_env != "global"
             && ui

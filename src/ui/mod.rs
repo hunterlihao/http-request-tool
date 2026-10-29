@@ -110,25 +110,27 @@ fn top_bar(ctx: &egui::Context, state: &mut AppState) {
 
                     ui.add_space(10.0);
 
-                    // 环境快捷选择
-                    egui::ComboBox::from_id_salt("topbar_env")
-                        .width(168.0)
-                        .selected_text(
-                            RichText::new(format!("环境 · {}", state.current_env))
-                                .size(12.5)
-                                .color(theme::text()),
-                        )
-                        .show_ui(ui, |ui| {
-                            let names: Vec<_> = state.env_names.clone();
-                            for n in names {
-                                if ui
-                                    .selectable_label(state.current_env == n, &n)
-                                    .clicked()
-                                {
-                                    state.load_env(&n);
-                                }
-                            }
-                        });
+                    // 环境快捷选择（等高下拉）
+                    let items: Vec<(egui::WidgetText, bool)> = state
+                        .env_names
+                        .iter()
+                        .map(|n| {
+                            (
+                                RichText::new(n).size(13.0).into(),
+                                *n == state.current_env,
+                            )
+                        })
+                        .collect();
+                    let btn = widgets::select_button(
+                        RichText::new(format!("环境 · {}  ▾", state.current_env)).size(12.5),
+                        168.0,
+                    );
+                    if let Some(i) =
+                        widgets::select_popup(ui, "topbar_env_select", 168.0, btn, &items)
+                    {
+                        let name = state.env_names[i].clone();
+                        state.load_env(&name);
+                    }
                 });
             });
         });

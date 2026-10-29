@@ -79,6 +79,57 @@ pub fn subtle_button(ui: &mut egui::Ui, text: &str) -> Response {
     ui.add(btn)
 }
 
+/// 构造等高下拉按钮（32 高，与输入框一致）
+pub fn select_button(text: impl Into<egui::WidgetText>, width: f32) -> egui::Button<'static> {
+    egui::Button::new(text)
+        .fill(theme::panel())
+        .stroke(Stroke::new(1.0, theme::border()))
+        .rounding(Rounding::same(8.0))
+        .min_size(egui::vec2(width, 32.0))
+}
+
+/// 等高下拉选择器（替代 ComboBox，保证与输入框同高）
+pub fn select_popup(
+    ui: &mut egui::Ui,
+    id: &str,
+    width: f32,
+    button: egui::Button<'static>,
+    items: &[(egui::WidgetText, bool)],
+) -> Option<usize> {
+    let popup_id = ui.make_persistent_id(id);
+    let resp = ui.add(button);
+    if resp.clicked() {
+        ui.memory_mut(|m| m.toggle_popup(popup_id));
+    }
+
+    let mut picked = None;
+    egui::popup::popup_below_widget(
+        ui,
+        popup_id,
+        &resp,
+        egui::popup::PopupCloseBehavior::CloseOnClick,
+        |ui| {
+            ui.set_min_width(width);
+            ui.spacing_mut().item_spacing.y = 2.0;
+            for (i, (label, selected)) in items.iter().enumerate() {
+                let item = egui::Button::new(label.clone())
+                    .fill(if *selected {
+                        theme::accent().gamma_multiply(0.10)
+                    } else {
+                        Color32::TRANSPARENT
+                    })
+                    .frame(false)
+                    .min_size(egui::vec2(width, 30.0));
+                if ui.add(item).clicked() {
+                    picked = Some(i);
+                    ui.memory_mut(|m| m.close_popup());
+                }
+            }
+        },
+    );
+    picked
+}
+
 /// 键值对编辑器（Params / Headers / Form 共用）
 pub fn kv_editor(
     ui: &mut egui::Ui,

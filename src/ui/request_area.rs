@@ -29,26 +29,32 @@ pub fn draw(ui: &mut egui::Ui, state: &mut AppState) {
 /// URL + 方法 + 发送
 fn url_bar(ui: &mut egui::Ui, state: &mut AppState) {
     ui.horizontal(|ui| {
-        // 方法下拉
-        egui::ComboBox::from_id_salt("method_combo")
-            .width(110.0)
-            .selected_text(
-                RichText::new(state.config.method.as_str())
-                    .color(theme::method_color(state.config.method.as_str()))
-                    .strong()
-                    .monospace(),
-            )
-            .show_ui(ui, |ui| {
-                for m in Method::ALL {
-                    ui.selectable_value(
-                        &mut state.config.method,
-                        m,
-                        RichText::new(m.as_str())
-                            .color(theme::method_color(m.as_str()))
-                            .monospace(),
-                    );
-                }
-            });
+        // 方法选择（与输入框等高）
+        let mc = theme::method_color(state.config.method.as_str());
+        let items: Vec<(egui::WidgetText, bool)> = Method::ALL
+            .iter()
+            .map(|m| {
+                (
+                    RichText::new(m.as_str())
+                        .monospace()
+                        .strong()
+                        .color(theme::method_color(m.as_str()))
+                        .into(),
+                    *m == state.config.method,
+                )
+            })
+            .collect();
+        let btn = widgets::select_button(
+            RichText::new(format!("{}  ▾", state.config.method.as_str()))
+                .monospace()
+                .strong()
+                .color(mc)
+                .size(13.0),
+            104.0,
+        );
+        if let Some(i) = widgets::select_popup(ui, "method_select", 128.0, btn, &items) {
+            state.config.method = Method::ALL[i];
+        }
 
         // URL 输入
         let send_w = 108.0;
@@ -127,20 +133,22 @@ fn headers_tab(ui: &mut egui::Ui, state: &mut AppState) {
 fn body_tab(ui: &mut egui::Ui, state: &mut AppState) {
     ui.horizontal(|ui| {
         widgets::section_label(ui, "Body 类型");
-        egui::ComboBox::from_id_salt("body_type_combo")
-            .width(180.0)
-            .selected_text(state.config.body_type.label())
-            .show_ui(ui, |ui| {
-                for bt in [
-                    BodyType::None,
-                    BodyType::Json,
-                    BodyType::Form,
-                    BodyType::Text,
-                    BodyType::Multipart,
-                ] {
-                    ui.selectable_value(&mut state.config.body_type, bt, bt.label());
-                }
-            });
+        let items: Vec<(egui::WidgetText, bool)> = BodyType::ALL
+            .iter()
+            .map(|bt| {
+                (
+                    RichText::new(bt.label()).size(13.0).into(),
+                    *bt == state.config.body_type,
+                )
+            })
+            .collect();
+        let btn = widgets::select_button(
+            RichText::new(format!("{}  ▾", state.config.body_type.label())).size(13.0),
+            180.0,
+        );
+        if let Some(i) = widgets::select_popup(ui, "body_type_select", 200.0, btn, &items) {
+            state.config.body_type = BodyType::ALL[i];
+        }
 
         if state.config.body_type == BodyType::Json && !state.config.body.trim().is_empty() {
             if widgets::subtle_button(ui, "格式化").clicked() {
@@ -209,19 +217,22 @@ fn body_tab(ui: &mut egui::Ui, state: &mut AppState) {
 fn auth_tab(ui: &mut egui::Ui, state: &mut AppState) {
     ui.horizontal(|ui| {
         widgets::section_label(ui, "认证方式");
-        egui::ComboBox::from_id_salt("auth_type_combo")
-            .width(200.0)
-            .selected_text(state.config.auth.auth_type.label())
-            .show_ui(ui, |ui| {
-                for at in [
-                    AuthType::None,
-                    AuthType::Basic,
-                    AuthType::Bearer,
-                    AuthType::CustomHeader,
-                ] {
-                    ui.selectable_value(&mut state.config.auth.auth_type, at, at.label());
-                }
-            });
+        let items: Vec<(egui::WidgetText, bool)> = AuthType::ALL
+            .iter()
+            .map(|at| {
+                (
+                    RichText::new(at.label()).size(13.0).into(),
+                    *at == state.config.auth.auth_type,
+                )
+            })
+            .collect();
+        let btn = widgets::select_button(
+            RichText::new(format!("{}  ▾", state.config.auth.auth_type.label())).size(13.0),
+            200.0,
+        );
+        if let Some(i) = widgets::select_popup(ui, "auth_type_select", 220.0, btn, &items) {
+            state.config.auth.auth_type = AuthType::ALL[i];
+        }
     });
     ui.add_space(10.0);
 

@@ -72,6 +72,14 @@ pub enum BodyType {
 }
 
 impl BodyType {
+    pub const ALL: [BodyType; 5] = [
+        BodyType::None,
+        BodyType::Json,
+        BodyType::Form,
+        BodyType::Text,
+        BodyType::Multipart,
+    ];
+
     pub fn label(&self) -> &'static str {
         match self {
             BodyType::None => "none",
@@ -95,6 +103,13 @@ pub enum AuthType {
 }
 
 impl AuthType {
+    pub const ALL: [AuthType; 4] = [
+        AuthType::None,
+        AuthType::Basic,
+        AuthType::Bearer,
+        AuthType::CustomHeader,
+    ];
+
     pub fn label(&self) -> &'static str {
         match self {
             AuthType::None => "无",
