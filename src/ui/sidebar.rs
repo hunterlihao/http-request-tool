@@ -97,12 +97,15 @@ fn history_panel(ui: &mut egui::Ui, state: &mut AppState) {
                 let row = ui.horizontal(|ui| {
                     ui.set_min_height(26.0);
                     let mc = theme::method_color(item.config.method.as_str());
-                    ui.label(
-                        RichText::new(item.config.method.as_str())
-                            .size(10.5)
-                            .monospace()
-                            .color(mc)
-                            .strong(),
+                    ui.add_sized(
+                        [46.0, 16.0],
+                        egui::Label::new(
+                            RichText::new(item.config.method.as_str())
+                                .size(10.5)
+                                .monospace()
+                                .color(mc)
+                                .strong(),
+                        ),
                     );
                     let label = ui.add(
                         egui::Label::new(
@@ -171,6 +174,7 @@ fn collections_panel(ui: &mut egui::Ui, state: &mut AppState) {
                         .clicked()
                     {
                         state.selected_collection = Some(c.id);
+                        state.reload_saved_requests();
                     }
                 }
             });
@@ -196,8 +200,6 @@ fn collections_panel(ui: &mut egui::Ui, state: &mut AppState) {
             }
         }
     });
-    // 重新加载已保存请求（选择变化时）
-    state.reload_saved_requests();
 
     ui.add_space(6.0);
     ui.horizontal(|ui| {
@@ -245,12 +247,15 @@ fn collections_panel(ui: &mut egui::Ui, state: &mut AppState) {
                 ui.horizontal(|ui| {
                     ui.set_min_height(24.0);
                     let mc = theme::method_color(req.config.method.as_str());
-                    ui.label(
-                        RichText::new(req.config.method.as_str())
-                            .size(10.5)
-                            .monospace()
-                            .color(mc)
-                            .strong(),
+                    ui.add_sized(
+                        [46.0, 16.0],
+                        egui::Label::new(
+                            RichText::new(req.config.method.as_str())
+                                .size(10.5)
+                                .monospace()
+                                .color(mc)
+                                .strong(),
+                        ),
                     );
                     let label = ui.add(
                         egui::Label::new(
@@ -400,34 +405,48 @@ fn env_panel(ui: &mut egui::Ui, state: &mut AppState) {
     // 变量编辑（直接编辑，变更即持久化）
     let before = state.env_vars.clone();
     let mut remove: Option<usize> = None;
+
+    let key_w = 110.0;
+    let del_w = 24.0;
+    let spacing = 8.0;
+    let row_h = 30.0;
+
     egui::ScrollArea::vertical()
         .id_salt("env_scroll")
         .auto_shrink([false, false])
         .show(ui, |ui| {
+            let val_w = (ui.available_width() - key_w - del_w - spacing * 2.0).max(100.0);
             egui::Grid::new("env_grid")
                 .num_columns(3)
-                .spacing([8.0, 6.0])
+                .spacing([spacing, 6.0])
                 .show(ui, |ui| {
-                    ui.label(RichText::new("变量").size(11.0).color(theme::text_dim()));
-                    ui.label(RichText::new("值").size(11.0).color(theme::text_dim()));
+                    ui.add_sized(
+                        [key_w, 16.0],
+                        egui::Label::new(RichText::new("变量").size(11.0).color(theme::text_dim())),
+                    );
+                    ui.add_sized(
+                        [val_w, 16.0],
+                        egui::Label::new(RichText::new("值").size(11.0).color(theme::text_dim())),
+                    );
                     ui.label("");
                     ui.end_row();
 
                     for (i, (k, v)) in state.env_vars.iter_mut().enumerate() {
-                        ui.add(
+                        ui.add_sized(
+                            [key_w, row_h],
                             TextEdit::singleline(k)
-                                .desired_width(110.0)
                                 .hint_text("key")
                                 .font(egui::TextStyle::Monospace),
                         );
-                        ui.add(
+                        ui.add_sized(
+                            [val_w, row_h],
                             TextEdit::singleline(v)
-                                .desired_width(f32::INFINITY)
                                 .hint_text("value")
                                 .font(egui::TextStyle::Monospace),
                         );
                         if ui
-                            .add(
+                            .add_sized(
+                                [del_w, row_h],
                                 egui::Button::new(RichText::new("✕").color(theme::text_dim()))
                                     .fill(Color32::TRANSPARENT)
                                     .frame(false),

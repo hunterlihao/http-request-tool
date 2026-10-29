@@ -152,7 +152,7 @@ fn body_tab(ui: &mut egui::Ui, state: &mut AppState) {
             }
         }
     });
-    ui.add_space(8.0);
+    ui.add_space(10.0);
 
     match state.config.body_type {
         BodyType::None => {
@@ -167,7 +167,7 @@ fn body_tab(ui: &mut egui::Ui, state: &mut AppState) {
             egui::ScrollArea::vertical()
                 .id_salt("body_text_scroll")
                 .max_height(250.0)
-                .auto_shrink([false, false])
+                .auto_shrink([false, true])
                 .show(ui, |ui| {
                     ui.add(
                         TextEdit::multiline(&mut state.config.body)
@@ -257,14 +257,14 @@ fn auth_tab(ui: &mut egui::Ui, state: &mut AppState) {
                     ui.label("Header 名");
                     ui.add(
                         TextEdit::singleline(&mut state.config.auth.header_name)
-                            .desired_width(300.0)
+                            .desired_width(320.0)
                             .hint_text("如 X-API-Key"),
                     );
                     ui.end_row();
                     ui.label("Header 值");
                     ui.add(
                         TextEdit::singleline(&mut state.config.auth.header_value)
-                            .desired_width(300.0),
+                            .desired_width(320.0),
                     );
                     ui.end_row();
                 });
@@ -273,9 +273,11 @@ fn auth_tab(ui: &mut egui::Ui, state: &mut AppState) {
 }
 
 fn advanced_tab(ui: &mut egui::Ui, state: &mut AppState) {
+    ui.add_space(8.0);
     egui::Grid::new("advanced_grid")
         .num_columns(2)
         .spacing([16.0, 12.0])
+        .min_col_width(76.0)
         .show(ui, |ui| {
             ui.label("超时（秒）");
             ui.horizontal(|ui| {

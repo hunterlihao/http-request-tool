@@ -5,9 +5,8 @@ use eframe::egui::{self, Color32, Margin, Response, RichText, Rounding, TextEdit
 use crate::model::request::KVPair;
 use crate::theme;
 
-/// 小节标题（带一条淡淡的引导线）
+/// 小节标题
 pub fn section_label(ui: &mut egui::Ui, text: &str) {
-    ui.add_space(2.0);
     ui.label(
         RichText::new(text)
             .size(12.0)
@@ -80,56 +79,64 @@ pub fn kv_editor(
     val_hint: &str,
 ) {
     let mut remove: Option<usize> = None;
-    let label_w = 44.0;
 
-    egui::ScrollArea::vertical()
-        .id_salt(format!("{id}_scroll"))
-        .max_height(240.0)
-        .auto_shrink([false, false])
+    let check_w = 24.0;
+    let key_w = 180.0;
+    let del_w = 24.0;
+    let spacing = 8.0;
+    let row_h = 30.0;
+    let val_w = (ui.available_width() - check_w - key_w - del_w - spacing * 3.0).max(120.0);
+
+    fn header(ui: &mut egui::Ui, text: &str, w: f32) {
+        ui.add_sized(
+            [w, 16.0],
+            egui::Label::new(RichText::new(text).size(11.0).color(theme::text_dim())),
+        );
+    }
+
+    egui::Grid::new(format!("{id}_grid"))
+        .num_columns(4)
+        .spacing([spacing, 6.0])
         .show(ui, |ui| {
-            egui::Grid::new(format!("{id}_grid"))
-                .num_columns(4)
-                .spacing([10.0, 6.0])
-                .min_col_width(label_w)
-                .show(ui, |ui| {
-                    ui.label(RichText::new("启用").size(11.0).color(theme::text_dim()));
-                    ui.label(RichText::new(key_hint).size(11.0).color(theme::text_dim()));
-                    ui.label(RichText::new(val_hint).size(11.0).color(theme::text_dim()));
-                    ui.label("");
-                    ui.end_row();
+            header(ui, "启用", check_w);
+            header(ui, key_hint, key_w);
+            header(ui, val_hint, val_w);
+            ui.label("");
+            ui.end_row();
 
-                    for (i, row) in rows.iter_mut().enumerate() {
-                        ui.checkbox(&mut row.enabled, "");
-                        ui.add(
-                            TextEdit::singleline(&mut row.key)
-                                .desired_width(200.0)
-                                .hint_text("key"),
-                        );
-                        ui.add(
-                            TextEdit::singleline(&mut row.value)
-                                .desired_width(f32::INFINITY)
-                                .hint_text("value"),
-                        );
-                        if ui
-                            .add(
-                                egui::Button::new(RichText::new("✕").color(theme::text_dim()))
-                                    .fill(Color32::TRANSPARENT)
-                                    .frame(false),
-                            )
-                            .clicked()
-                        {
-                            remove = Some(i);
-                        }
-                        ui.end_row();
-                    }
-                });
+            for (i, row) in rows.iter_mut().enumerate() {
+                ui.add_sized(
+                    [check_w, row_h],
+                    egui::Checkbox::without_text(&mut row.enabled),
+                );
+                ui.add_sized(
+                    [key_w, row_h],
+                    TextEdit::singleline(&mut row.key).hint_text("key"),
+                );
+                ui.add_sized(
+                    [val_w, row_h],
+                    TextEdit::singleline(&mut row.value).hint_text("value"),
+                );
+                if ui
+                    .add_sized(
+                        [del_w, row_h],
+                        egui::Button::new(RichText::new("✕").color(theme::text_dim()))
+                            .fill(Color32::TRANSPARENT)
+                            .frame(false),
+                    )
+                    .clicked()
+                {
+                    remove = Some(i);
+                }
+                ui.end_row();
+            }
         });
 
     if let Some(i) = remove {
         rows.remove(i);
     }
 
-    ui.add_space(4.0);
+    ui.add_space(6.0);
     if subtle_button(ui, "+ 添加一行").clicked() {
         rows.push(KVPair {
             enabled: true,

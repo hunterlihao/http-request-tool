@@ -27,7 +27,7 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
             .frame(
                 egui::Frame::none()
                     .fill(theme::panel())
-                    .inner_margin(egui::Margin::symmetric(12.0, 10.0)),
+                    .inner_margin(egui::Margin::symmetric(14.0, 10.0)),
             )
             .show(ctx, |ui| {
                 sidebar::draw(ui, state);
@@ -38,11 +38,12 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
         .frame(
             egui::Frame::none()
                 .fill(theme::canvas())
-                .inner_margin(egui::Margin::symmetric(16.0, 14.0)),
+                .inner_margin(egui::Margin::symmetric(14.0, 12.0)),
         )
         .show(ctx, |ui| {
             let total_h = ui.available_height();
-            let req_h = (total_h * 0.52).clamp(260.0, total_h - 180.0);
+            let max_req = (total_h - 180.0).max(240.0);
+            let req_h = (total_h * 0.52).clamp(240.0, max_req);
 
             // 请求编辑区（固定高度）
             ui.allocate_ui_with_layout(
@@ -55,7 +56,7 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
 
             ui.add_space(8.0);
             ui.separator();
-            ui.add_space(4.0);
+            ui.add_space(8.0);
 
             // 响应区（占剩余空间）
             response::draw(ui, state);
