@@ -72,23 +72,13 @@ pub enum BodyType {
 }
 
 impl BodyType {
-    pub fn as_str(&self) -> &'static str {
+    pub fn label(&self) -> &'static str {
         match self {
             BodyType::None => "none",
-            BodyType::Json => "json",
-            BodyType::Form => "form",
-            BodyType::Text => "text",
-            BodyType::Multipart => "multipart",
-        }
-    }
-
-    pub fn from_str(s: &str) -> Self {
-        match s {
-            "json" => BodyType::Json,
-            "form" => BodyType::Form,
-            "text" => BodyType::Text,
-            "multipart" => BodyType::Multipart,
-            _ => BodyType::None,
+            BodyType::Json => "JSON",
+            BodyType::Form => "Form URL Encoded",
+            BodyType::Text => "Text",
+            BodyType::Multipart => "Multipart Form",
         }
     }
 }
@@ -105,21 +95,12 @@ pub enum AuthType {
 }
 
 impl AuthType {
-    pub fn as_str(&self) -> &'static str {
+    pub fn label(&self) -> &'static str {
         match self {
-            AuthType::None => "none",
-            AuthType::Basic => "basic",
-            AuthType::Bearer => "bearer",
-            AuthType::CustomHeader => "custom_header",
-        }
-    }
-
-    pub fn from_str(s: &str) -> Self {
-        match s {
-            "basic" => AuthType::Basic,
-            "bearer" => AuthType::Bearer,
-            "custom_header" => AuthType::CustomHeader,
-            _ => AuthType::None,
+            AuthType::None => "无",
+            AuthType::Basic => "Basic Auth",
+            AuthType::Bearer => "Bearer Token",
+            AuthType::CustomHeader => "自定义 Header",
         }
     }
 }

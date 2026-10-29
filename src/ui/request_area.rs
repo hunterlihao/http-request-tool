@@ -128,7 +128,7 @@ fn body_tab(ui: &mut egui::Ui, state: &mut AppState) {
         widgets::section_label(ui, "Body 类型");
         egui::ComboBox::from_id_salt("body_type_combo")
             .width(180.0)
-            .selected_text(body_type_label(state.config.body_type))
+            .selected_text(state.config.body_type.label())
             .show_ui(ui, |ui| {
                 for bt in [
                     BodyType::None,
@@ -137,7 +137,7 @@ fn body_tab(ui: &mut egui::Ui, state: &mut AppState) {
                     BodyType::Text,
                     BodyType::Multipart,
                 ] {
-                    ui.selectable_value(&mut state.config.body_type, bt, body_type_label(bt));
+                    ui.selectable_value(&mut state.config.body_type, bt, bt.label());
                 }
             });
 
@@ -209,7 +209,7 @@ fn auth_tab(ui: &mut egui::Ui, state: &mut AppState) {
         widgets::section_label(ui, "认证方式");
         egui::ComboBox::from_id_salt("auth_type_combo")
             .width(200.0)
-            .selected_text(auth_type_label(state.config.auth.auth_type))
+            .selected_text(state.config.auth.auth_type.label())
             .show_ui(ui, |ui| {
                 for at in [
                     AuthType::None,
@@ -217,7 +217,7 @@ fn auth_tab(ui: &mut egui::Ui, state: &mut AppState) {
                     AuthType::Bearer,
                     AuthType::CustomHeader,
                 ] {
-                    ui.selectable_value(&mut state.config.auth.auth_type, at, auth_type_label(at));
+                    ui.selectable_value(&mut state.config.auth.auth_type, at, at.label());
                 }
             });
     });
@@ -306,23 +306,4 @@ fn advanced_tab(ui: &mut egui::Ui, state: &mut AppState) {
             });
             ui.end_row();
         });
-}
-
-fn body_type_label(bt: BodyType) -> &'static str {
-    match bt {
-        BodyType::None => "none",
-        BodyType::Json => "JSON",
-        BodyType::Form => "Form URL Encoded",
-        BodyType::Text => "Text",
-        BodyType::Multipart => "Multipart Form",
-    }
-}
-
-fn auth_type_label(at: AuthType) -> &'static str {
-    match at {
-        AuthType::None => "无",
-        AuthType::Basic => "Basic Auth",
-        AuthType::Bearer => "Bearer Token",
-        AuthType::CustomHeader => "自定义 Header",
-    }
 }

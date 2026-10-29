@@ -95,13 +95,6 @@ impl Db {
         Ok(self.conn.last_insert_rowid())
     }
 
-    pub fn rename_collection(&self, id: i64, name: &str) -> Result<()> {
-        self.conn
-            .execute("UPDATE collections SET name=?1 WHERE id=?2", params![name, id])
-            .context("重命名集合失败")?;
-        Ok(())
-    }
-
     pub fn delete_collection(&self, id: i64) -> Result<()> {
         // 先删集合下的请求，再删集合
         self.conn
@@ -148,17 +141,6 @@ impl Db {
             )
             .context("保存请求失败")?;
         Ok(self.conn.last_insert_rowid())
-    }
-
-    pub fn update_saved_request(&self, id: i64, name: &str, config: &RequestConfig) -> Result<()> {
-        let config_json = serde_json::to_string(config).context("序列化请求失败")?;
-        self.conn
-            .execute(
-                "UPDATE saved_requests SET name=?1, config=?2 WHERE id=?3",
-                params![name, config_json, id],
-            )
-            .context("更新请求失败")?;
-        Ok(())
     }
 
     pub fn delete_saved_request(&self, id: i64) -> Result<()> {
@@ -284,15 +266,6 @@ impl Db {
         Ok(())
     }
 
-    /// 取某个环境的所有键值（用于 `{{var}}` 替换）。不存在/未初始化返回空表。
-    pub fn get_env_map(&self, env_name: &str) -> Result<std::collections::HashMap<String, String>> {
-        let mut map = std::collections::HashMap::new();
-        for v in self.list_env_vars(env_name)? {
-            map.insert(v.key, v.value);
-        }
-        Ok(map)
-    }
-
     // ---------- 导入 / 导出 ----------
 
     /// 导出某个集合为 JSON 字符串
@@ -364,10 +337,9 @@ mod tests {
         // 新建
         let id = db.create_collection("测试集合", 0).unwrap();
         assert!(id > 0);
-        db.rename_collection(id, "新名字").unwrap();
         let cols = db.list_collections().unwrap();
         let c = cols.iter().find(|c| c.id == id).unwrap();
-        assert_eq!(c.name, "新名字");
+        assert_eq!(c.name, "测试集合");
         // 删除
         db.delete_collection(id).unwrap();
         let cols = db.list_collections().unwrap();
@@ -383,17 +355,12 @@ mod tests {
         let (db, p) = test_db();
         let cfg = sample_config();
         let col_id = db.create_collection("A", 0).unwrap();
-        let rid = db.save_request(col_id, "请求1", &cfg).unwrap();
+        db.save_request(col_id, "请求1", &cfg).unwrap();
         let list = db.list_saved_requests(col_id).unwrap();
         assert_eq!(list.len(), 1);
         assert_eq!(list[0].name, "请求1");
         assert_eq!(list[0].config.method, Method::Post);
-        // 更新
-        let mut cfg2 = cfg.clone();
-        cfg2.url = "https://changed.example.com".into();
-        db.update_saved_request(rid, "改后", &cfg2).unwrap();
-        let list = db.list_saved_requests(col_id).unwrap();
-        assert_eq!(list[0].url(), "https://changed.example.com".to_string());
+        assert_eq!(list[0].config.url, cfg.url);
         drop(db);
         let _ = std::fs::remove_file(&p);
         let _ = std::fs::remove_file(format!("{}-wal", p.display()));
@@ -425,15 +392,21 @@ mod tests {
         db.set_env_var("dev", "token", "abc").unwrap();
         db.set_env_var("prod", "host", "prod.example.com").unwrap();
         assert_eq!(db.list_env_names().unwrap(), vec!["dev", "prod"]);
-        let map = db.get_env_map("dev").unwrap();
-        assert_eq!(map.get("host").unwrap(), "example.com");
+        let vars = db.list_env_vars("dev").unwrap();
+        assert_eq!(
+            vars.iter().find(|v| v.key == "host").map(|v| v.value.as_str()),
+            Some("example.com")
+        );
         // 覆盖
         db.set_env_var("dev", "token", "xyz").unwrap();
-        let map = db.get_env_map("dev").unwrap();
-        assert_eq!(map.get("token").unwrap(), "xyz");
+        let vars = db.list_env_vars("dev").unwrap();
+        assert_eq!(
+            vars.iter().find(|v| v.key == "token").map(|v| v.value.as_str()),
+            Some("xyz")
+        );
         db.delete_env_var("dev", "token").unwrap();
-        let map = db.get_env_map("dev").unwrap();
-        assert!(!map.contains_key("token"));
+        let vars = db.list_env_vars("dev").unwrap();
+        assert!(!vars.iter().any(|v| v.key == "token"));
         db.drop_env("dev").unwrap();
         assert_eq!(db.list_env_names().unwrap(), vec!["prod"]);
         drop(db);
@@ -462,12 +435,5 @@ mod tests {
             let _ = std::fs::remove_file(format!("{}-wal", p.display()));
             let _ = std::fs::remove_file(format!("{}-shm", p.display()));
         }
-    }
-}
-
-// 辅助：SavedRequest 快速取 url
-impl SavedRequest {
-    pub fn url(&self) -> String {
-        self.config.url.clone()
     }
 }

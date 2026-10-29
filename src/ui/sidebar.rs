@@ -161,7 +161,7 @@ fn collections_panel(ui: &mut egui::Ui, state: &mut AppState) {
             .map(|c| c.name.clone())
             .unwrap_or_else(|| "（无集合）".to_string());
         egui::ComboBox::from_id_salt("collection_combo")
-            .width(ui.available_width() - 4.0)
+            .width(ui.available_width() - 34.0)
             .selected_text(RichText::new(current).size(13.0))
             .show_ui(ui, |ui| {
                 let cols: Vec<_> = state.collections.clone();
@@ -174,6 +174,27 @@ fn collections_panel(ui: &mut egui::Ui, state: &mut AppState) {
                     }
                 }
             });
+        // 删除当前集合
+        if ui
+            .add(
+                egui::Button::new(RichText::new("✕").size(12.0).color(theme::ERROR))
+                    .fill(Color32::TRANSPARENT)
+                    .frame(false),
+            )
+            .on_hover_text("删除当前集合")
+            .clicked()
+        {
+            if let Some(cid) = state.selected_collection {
+                match state.db.delete_collection(cid) {
+                    Ok(_) => {
+                        state.selected_collection = None;
+                        state.reload_collections();
+                        state.toast_info("已删除集合".to_string());
+                    }
+                    Err(e) => state.toast_error(format!("删除失败：{e}")),
+                }
+            }
+        }
     });
     // 重新加载已保存请求（选择变化时）
     state.reload_saved_requests();
@@ -317,7 +338,7 @@ fn env_panel(ui: &mut egui::Ui, state: &mut AppState) {
     // 环境选择
     ui.horizontal(|ui| {
         egui::ComboBox::from_id_salt("env_combo")
-            .width(ui.available_width() - 4.0)
+            .width(ui.available_width() - 34.0)
             .selected_text(RichText::new(format!("{}", state.current_env)).size(13.0))
             .show_ui(ui, |ui| {
                 let names: Vec<_> = state.env_names.clone();
@@ -327,6 +348,27 @@ fn env_panel(ui: &mut egui::Ui, state: &mut AppState) {
                     }
                 }
             });
+        // 删除当前环境（global 不可删）
+        if state.current_env != "global"
+            && ui
+                .add(
+                    egui::Button::new(RichText::new("✕").size(12.0).color(theme::ERROR))
+                        .fill(Color32::TRANSPARENT)
+                        .frame(false),
+                )
+                .on_hover_text("删除当前环境")
+                .clicked()
+        {
+            let name = state.current_env.clone();
+            match state.db.drop_env(&name) {
+                Ok(_) => {
+                    state.load_env("global");
+                    state.reload_envs();
+                    state.toast_info(format!("已删除环境「{name}」"));
+                }
+                Err(e) => state.toast_error(format!("删除失败：{e}")),
+            }
+        }
     });
 
     ui.add_space(6.0);

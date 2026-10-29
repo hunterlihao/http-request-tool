@@ -22,8 +22,6 @@ pub const TEXT: Color32 = Color32::from_rgb(0xE6, 0xE9, 0xEE);
 pub const TEXT_DIM: Color32 = Color32::from_rgb(0x8B, 0x93, 0x9F);
 /// 签名色（签发动作 / 焦点）
 pub const ACCENT: Color32 = Color32::from_rgb(0xFF, 0x9F, 0x43);
-/// 签名色（悬停）
-pub const ACCENT_HOVER: Color32 = Color32::from_rgb(0xFF, 0xB3, 0x6B);
 
 /// 2xx
 pub const OK: Color32 = Color32::from_rgb(0x3D, 0xD6, 0x8C);

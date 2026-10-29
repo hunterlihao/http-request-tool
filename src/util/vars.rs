@@ -30,26 +30,6 @@ pub fn replace_vars(text: &str, vars: &HashMap<String, String>) -> String {
     out
 }
 
-/// 收集文本中出现的所有变量名
-pub fn collect_var_names(text: &str) -> Vec<String> {
-    let mut names = Vec::new();
-    let bytes = text.as_bytes();
-    let mut i = 0;
-    while i < text.len() {
-        if bytes[i] == b'{' && text[i..].starts_with("{{") {
-            if let Some(end) = text[i + 2..].find("}}") {
-                let key = &text[i + 2..i + 2 + end];
-                names.push(key.trim().to_string());
-                i = i + 2 + end + 2;
-                continue;
-            }
-        }
-        let ch = text[i..].chars().next().unwrap();
-        i += ch.len_utf8();
-    }
-    names
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -86,11 +66,5 @@ mod tests {
     fn test_whitespace_inside() {
         let v = HashMap::from([("base url".to_string(), "http://local".to_string())]);
         assert_eq!(replace_vars("{{ base url }}/p", &v), "http://local/p");
-    }
-
-    #[test]
-    fn test_collect_names() {
-        let names = collect_var_names("a={{x}} b={{ y }} c={{x}}");
-        assert_eq!(names, vec!["x", "y", "x"]);
     }
 }
