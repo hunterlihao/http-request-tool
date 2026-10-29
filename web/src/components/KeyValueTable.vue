@@ -10,6 +10,8 @@ withDefaults(
     keyLabel?: string
     valueLabel?: string
     addText?: string
+    /** 提供后 Key 列渲染为可搜索、可自定义的下拉框 */
+    keyOptions?: string[]
   }>(),
   {
     keyPlaceholder: 'key',
@@ -17,6 +19,7 @@ withDefaults(
     keyLabel: 'Key',
     valueLabel: 'Value',
     addText: '添加一行',
+    keyOptions: () => [],
   },
 )
 
@@ -44,7 +47,20 @@ function removeRow(index: number) {
       </el-table-column>
       <el-table-column :label="keyLabel" min-width="160">
         <template #default="{ row }">
-          <el-input v-model="row.key" size="small" :placeholder="keyPlaceholder" />
+          <el-select
+            v-if="keyOptions.length"
+            v-model="row.key"
+            size="small"
+            style="width: 100%"
+            filterable
+            allow-create
+            default-first-option
+            :reserve-keyword="false"
+            :placeholder="keyPlaceholder"
+          >
+            <el-option v-for="option in keyOptions" :key="option" :label="option" :value="option" />
+          </el-select>
+          <el-input v-else v-model="row.key" size="small" :placeholder="keyPlaceholder" />
         </template>
       </el-table-column>
       <el-table-column :label="valueLabel" min-width="200">

@@ -5,20 +5,51 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 import RequestPanel from '@/components/RequestPanel.vue'
 import ResponsePanel from '@/components/ResponsePanel.vue'
 import SidePanel from '@/components/SidePanel.vue'
-import { init, loadEnv, sendRequest, state } from '@/store'
+import { init, loadEnv, openSaveDialog, sendRequest, state } from '@/store'
 
 const drawerOpen = ref(false)
 const narrow = ref(false)
+/** 请求区占比（可拖拽调整，持久化到本地） */
+const ratio = ref(Number(localStorage.getItem('pane-ratio') ?? 0.47))
+const dragging = ref(false)
 
 function syncNarrow() {
   narrow.value = window.innerWidth < 900
   if (!narrow.value) drawerOpen.value = false
 }
 
+function onPointerMove(event: PointerEvent) {
+  if (!dragging.value) return
+  const main = document.querySelector('.app-main')
+  if (!(main instanceof HTMLElement)) return
+  const rect = main.getBoundingClientRect()
+  const next = (event.clientY - rect.top) / rect.height
+  ratio.value = Math.min(0.74, Math.max(0.24, next))
+}
+
+function stopDrag() {
+  if (!dragging.value) return
+  dragging.value = false
+  localStorage.setItem('pane-ratio', ratio.value.toFixed(3))
+  window.removeEventListener('pointermove', onPointerMove)
+  window.removeEventListener('pointerup', stopDrag)
+}
+
+function startDrag(event: PointerEvent) {
+  event.preventDefault()
+  dragging.value = true
+  window.addEventListener('pointermove', onPointerMove)
+  window.addEventListener('pointerup', stopDrag)
+}
+
 function handleKeydown(e: KeyboardEvent) {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+  if (!(e.ctrlKey || e.metaKey)) return
+  if (e.key === 'Enter') {
     e.preventDefault()
     sendRequest()
+  } else if (e.key.toLowerCase() === 's') {
+    e.preventDefault()
+    openSaveDialog()
   }
 }
 
@@ -32,6 +63,8 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   window.removeEventListener('resize', syncNarrow)
   window.removeEventListener('keydown', handleKeydown)
+  window.removeEventListener('pointermove', onPointerMove)
+  window.removeEventListener('pointerup', stopDrag)
 })
 </script>
 
@@ -62,9 +95,21 @@ onBeforeUnmount(() => {
       </aside>
 
       <main class="app-main">
-        <section class="pane pane-request">
+        <section
+          class="pane pane-request"
+          :style="!narrow ? { flex: `0 0 calc(${(ratio * 100).toFixed(2)}% - 10px)` } : undefined"
+        >
           <RequestPanel />
         </section>
+
+        <div
+          v-if="!narrow"
+          class="splitter"
+          :class="{ dragging }"
+          title="拖拽调整请求区与响应区高度"
+          @pointerdown="startDrag"
+        />
+
         <section class="pane pane-response">
           <ResponsePanel />
         </section>

@@ -17,6 +17,9 @@ async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> 
   if (inTauri) {
     return invoke<T>(cmd, args)
   }
+  if (!import.meta.env.DEV) {
+    throw new Error('当前环境不支持请求后端')
+  }
   const mock = await import('./mock')
   return mock.handle(cmd, args) as Promise<T>
 }

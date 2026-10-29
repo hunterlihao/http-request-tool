@@ -15,17 +15,16 @@ import {
   exportCollection,
   importCollection,
   loadEnv,
+  openSaveDialog,
   persistEnvVar,
   removeEnvVar,
-  saveCurrentRequest,
   selectCollection,
   state,
+  submitSaveDialog,
 } from '@/store'
 
 const newCollection = ref('')
 const newEnv = ref('')
-const saveDialog = ref(false)
-const saveName = ref('')
 
 /** 历史按 方法 + URL 去重，保留最新一条 */
 const filteredHistory = computed<HistoryItem[]>(() => {
@@ -48,9 +47,27 @@ const filteredHistory = computed<HistoryItem[]>(() => {
   return out
 })
 
-const currentCollectionName = computed(
-  () => state.collections.find((c) => c.id === state.currentCollectionId)?.name ?? '（无集合）',
-)
+/** 集合内请求按名称/URL 过滤 */
+const filteredSaved = computed(() => {
+  const keyword = state.collectionSearch.trim().toLowerCase()
+  if (!keyword) return state.savedRequests
+  return state.savedRequests.filter(
+    (req) =>
+      req.name.toLowerCase().includes(keyword) || req.config.url.toLowerCase().includes(keyword),
+  )
+})
+
+/** created_at 形如 2026-10-29 12:03:11，列表里只显示时间/日期 */
+function shortTime(createdAt: string): string {
+  if (!createdAt) return ''
+  const [date, time = ''] = createdAt.split(' ')
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+    now.getDate(),
+  ).padStart(2, '0')}`
+  if (date === today) return time.slice(0, 5)
+  return date.slice(5)
+}
 
 async function submitCollection() {
   await createCollection(newCollection.value)
@@ -60,19 +77,6 @@ async function submitCollection() {
 async function submitEnv() {
   await createEnv(newEnv.value)
   newEnv.value = ''
-}
-
-async function submitSave() {
-  const ok = await saveCurrentRequest(saveName.value)
-  if (ok) {
-    saveDialog.value = false
-    saveName.value = ''
-  }
-}
-
-function openSaveDialog() {
-  saveName.value = state.config.url || '未命名请求'
-  saveDialog.value = true
 }
 
 function addEnvVar() {
@@ -105,6 +109,7 @@ function addEnvVar() {
               v-for="item in filteredHistory"
               :key="item.id"
               class="list-row"
+              :title="`${item.created_at}${item.duration_ms != null ? ` · ${item.duration_ms} ms` : ''}`"
               @click="applyConfig(item.config)"
             >
               <span class="method" :style="{ color: METHOD_COLOR[item.config.method] }">
@@ -120,6 +125,7 @@ function addEnvVar() {
               >
                 {{ item.status_code }}
               </span>
+              <span v-if="item.created_at" class="row-time">{{ shortTime(item.created_at) }}</span>
               <span class="row-actions">
                 <el-button
                   text
@@ -189,12 +195,21 @@ function addEnvVar() {
             </el-button>
           </div>
 
-          <span class="section-title">已保存请求（{{ state.savedRequests.length }}）</span>
+          <span class="section-title">已保存请求（{{ filteredSaved.length }}）</span>
+          <el-input
+            v-if="state.savedRequests.length > 4"
+            v-model="state.collectionSearch"
+            size="small"
+            placeholder="搜索已保存请求"
+            :prefix-icon="Search"
+            clearable
+          />
           <div class="list">
             <div
-              v-for="req in state.savedRequests"
+              v-for="req in filteredSaved"
               :key="req.id"
               class="list-row"
+              :title="req.config.url"
               @click="applyConfig(req.config)"
             >
               <span class="method" :style="{ color: METHOD_COLOR[req.config.method] }">
@@ -211,8 +226,8 @@ function addEnvVar() {
               </span>
             </div>
             <el-empty
-              v-if="!state.savedRequests.length"
-              description="集合为空，保存当前请求试试"
+              v-if="!filteredSaved.length"
+              :description="state.savedRequests.length ? '没有匹配的请求' : '集合为空，保存当前请求试试'"
               :image-size="72"
             />
           </div>
@@ -285,17 +300,17 @@ function addEnvVar() {
       </el-tab-pane>
     </el-tabs>
 
-    <el-dialog v-model="saveDialog" title="保存请求到集合" width="420px" append-to-body>
+    <el-dialog v-model="state.saveDialogOpen" title="保存请求到集合" width="420px" append-to-body>
       <span class="hint">为这个请求起个名字，便于以后在集合中找到它</span>
       <el-input
-        v-model="saveName"
+        v-model="state.saveName"
         placeholder="未命名请求"
         style="margin-top: 10px"
-        @keyup.enter="submitSave"
+        @keyup.enter="submitSaveDialog"
       />
       <template #footer>
-        <el-button @click="saveDialog = false">取消</el-button>
-        <el-button type="primary" @click="submitSave">保存</el-button>
+        <el-button @click="state.saveDialogOpen = false">取消</el-button>
+        <el-button type="primary" @click="submitSaveDialog">保存</el-button>
       </template>
     </el-dialog>
   </div>

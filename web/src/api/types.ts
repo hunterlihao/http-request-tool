@@ -41,6 +41,7 @@ export interface ResponseView {
   status_text: string
   http_version: string
   headers: [string, string][]
+  request_url: string
   body_text: string
   body_pretty: string
   body_len: number
@@ -118,6 +119,32 @@ export const AUTH_TYPE_LABEL: Record<AuthType, string> = {
   Bearer: 'Bearer Token',
   CustomHeader: '自定义 Header',
 }
+
+/** 常用请求头：Header 名称支持下拉选择，也可直接输入 */
+export const COMMON_HEADERS: string[] = [
+  'Accept',
+  'Accept-Charset',
+  'Accept-Encoding',
+  'Accept-Language',
+  'Authorization',
+  'Cache-Control',
+  'Connection',
+  'Content-Length',
+  'Content-Type',
+  'Cookie',
+  'Host',
+  'If-Modified-Since',
+  'If-None-Match',
+  'Origin',
+  'Pragma',
+  'Range',
+  'Referer',
+  'User-Agent',
+  'X-API-Key',
+  'X-Auth-Token',
+  'X-Request-Id',
+  'X-Requested-With',
+]
 
 export function emptyConfig(): RequestConfig {
   return {

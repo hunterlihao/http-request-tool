@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { FolderOpened, MagicStick, Upload } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 
 import { api } from '@/api'
 import {
@@ -9,6 +9,7 @@ import {
   AUTH_TYPE_LABEL,
   BODY_TYPES,
   BODY_TYPE_LABEL,
+  COMMON_HEADERS,
   METHODS,
   METHOD_COLOR,
   METHOD_LABEL,
@@ -21,6 +22,19 @@ const curlText = ref('')
 
 const paramsCount = () => state.config.params.filter((p) => p.key.trim()).length
 const headersCount = () => state.config.headers.filter((h) => h.key.trim()).length
+
+/** JSON 请求体的实时校验提示 */
+const jsonError = computed(() => {
+  if (state.config.body_type !== 'Json') return ''
+  const text = state.config.body.trim()
+  if (!text) return ''
+  try {
+    JSON.parse(text)
+    return ''
+  } catch (e) {
+    return (e as Error).message
+  }
+})
 
 async function submitCurl() {
   if (!curlText.value.trim()) {
@@ -37,6 +51,12 @@ async function submitCurl() {
 async function chooseFile() {
   const path = await api.pickFile()
   if (path) state.config.file_path = path
+}
+
+/** 跳转到环境变量页补全变量 */
+function goToEnv() {
+  state.sideTab = 'environments'
+  state.sidebarVisible = true
 }
 
 function formatBody() {
@@ -68,14 +88,6 @@ function importParamsFromUrl() {
     ElMessage.error('URL 无法解析')
   }
 }
-
-// 切换 Body 类型时给出提示，避免误以为请求体已发送
-watch(
-  () => state.config.body_type,
-  (type) => {
-    if (type === 'None') state.config.body = state.config.body.trim() ? state.config.body : ''
-  },
-)
 </script>
 
 <template>
@@ -106,14 +118,20 @@ watch(
     </div>
 
     <div class="url-meta">
-      <span class="hint">Ctrl + Enter 快速发送</span>
+      <span class="hint">Ctrl + Enter 发送 · Ctrl + S 保存到集合</span>
       <el-divider direction="vertical" />
       <span class="hint">当前环境：{{ state.currentEnv }}</span>
       <el-tooltip
         v-if="state.undefinedVars.length"
-        content="这些变量在当前环境没有值，发送时会原样保留"
+        content="这些变量在当前环境没有值，发送时会原样保留；点击去环境变量里补上"
       >
-        <el-tag type="warning" size="small" effect="plain">
+        <el-tag
+          type="warning"
+          size="small"
+          effect="plain"
+          style="cursor: pointer"
+          @click="goToEnv"
+        >
           未定义变量：{{ state.undefinedVars.join('、') }}
         </el-tag>
       </el-tooltip>
@@ -157,13 +175,17 @@ watch(
             v-model="state.config.headers"
             key-label="Header"
             value-label="值"
-            key-placeholder="Header"
+            key-placeholder="选择或输入 Header"
             value-placeholder="值"
+            :key-options="COMMON_HEADERS"
           />
         </div>
       </el-tab-pane>
 
       <el-tab-pane label="Body" name="body">
+        <template #label>
+          Body<span v-if="jsonError" class="tab-dot" title="JSON 格式有误" />
+        </template>
         <div class="tab-body">
           <div class="tab-tip">
             <el-radio-group v-model="state.config.body_type" size="small">
@@ -191,17 +213,28 @@ watch(
             description="选择上方的 Body 类型以编辑请求内容"
           />
 
-          <el-input
+          <template
             v-else-if="state.config.body_type === 'Json' || state.config.body_type === 'Text'"
-            v-model="state.config.body"
-            type="textarea"
-            :rows="9"
-            resize="vertical"
-            class="mono"
-            :placeholder="
-              state.config.body_type === 'Json' ? '{\n  \'key\': \'value\'\n}' : '纯文本内容'
-            "
-          />
+          >
+            <el-input
+              v-model="state.config.body"
+              type="textarea"
+              :rows="9"
+              resize="vertical"
+              class="mono"
+              :placeholder="
+                state.config.body_type === 'Json' ? '{\n  \'key\': \'value\'\n}' : '纯文本内容'
+              "
+            />
+            <el-alert
+              v-if="jsonError"
+              type="error"
+              :closable="false"
+              show-icon
+              :title="`JSON 格式有误：${jsonError}`"
+              style="margin-top: 8px"
+            />
+          </template>
 
           <template v-else-if="state.config.body_type === 'Form'">
             <span class="hint">application/x-www-form-urlencoded 键值对</span>

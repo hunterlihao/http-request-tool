@@ -36,11 +36,17 @@ const displayText = computed(() => {
 </script>
 
 <template>
-  <div class="response-panel">
+  <div
+    class="response-panel"
+    :style="{
+      '--status-color':
+        resp && !resp.error ? statusColor(resp.status_code) : resp?.error ? '#dc2626' : 'transparent',
+    }"
+  >
     <el-empty
       v-if="!resp"
       description="尚无响应"
-      :image-size="90"
+      :image-size="72"
     >
       <span class="hint">填写 URL 后点击「发送」，响应结果将显示在这里</span>
     </el-empty>
@@ -52,17 +58,22 @@ const displayText = computed(() => {
       </div>
       <div style="padding: 0 14px 14px">
         <el-alert type="error" :closable="false" :title="resp.error" show-icon />
+        <div class="hint" style="margin-top: 8px">
+          可检查：URL 是否可访问、是否需要代理（高级 → 自定义代理）、或服务端证书是否受信任。
+        </div>
       </div>
     </template>
 
     <template v-else>
       <div class="resp-head">
-        <span
-          class="status-chip"
-          :style="{ backgroundColor: statusColor(resp.status_code) }"
-        >
-          {{ resp.status_code }} {{ resp.status_text }}
-        </span>
+        <el-tooltip :content="`实际请求：${resp.request_url}`" placement="top" :show-after="150">
+          <span
+            class="status-chip"
+            :style="{ backgroundColor: statusColor(resp.status_code) }"
+          >
+            {{ resp.status_code }} {{ resp.status_text }}
+          </span>
+        </el-tooltip>
         <span class="meta-chip">{{ resp.duration_ms }} ms</span>
         <span class="meta-chip">{{ humanSize(resp.body_len) }}</span>
         <span v-if="resp.http_version" class="meta-chip">{{ resp.http_version }}</span>

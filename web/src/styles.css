@@ -48,6 +48,12 @@ body {
   box-sizing: border-box;
 }
 
+/* 键盘可达性：统一的可见焦点环 */
+:where(.el-button, .el-checkbox, .el-switch, .el-tabs__item, .el-radio-button__inner):focus-visible {
+  outline: 2px solid var(--el-color-primary-light-5);
+  outline-offset: 1px;
+}
+
 /* ---------- 应用外壳 ---------- */
 
 .app-shell {
@@ -103,7 +109,7 @@ body {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
   padding: 10px;
 }
 
@@ -115,17 +121,41 @@ body {
   border: 1px solid var(--el-border-color);
   border-radius: 8px;
   overflow: hidden;
+  transition: border-color 0.15s ease;
 }
 
 .pane-request {
   flex: 0 0 auto;
-  height: 47%;
   min-height: 220px;
 }
 
 .pane-response {
   flex: 1 1 auto;
   min-height: 180px;
+}
+
+/* 可拖拽的分割条：静默存在，悬停时才提示可拖拽 */
+.splitter {
+  flex: 0 0 10px;
+  cursor: row-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+}
+
+.splitter::after {
+  content: '';
+  width: 44px;
+  height: 3px;
+  border-radius: 999px;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.splitter:hover::after,
+.splitter.dragging::after {
+  background: var(--el-border-color-darker, #d1d5db);
 }
 
 /* ---------- 通用 ---------- */
@@ -246,6 +276,15 @@ body {
   color: var(--el-text-color-secondary);
 }
 
+/* 单元格内的下拉框占满宽度，高度与输入框一致 */
+.kv-editor .el-table .el-select {
+  width: 100%;
+}
+
+.kv-editor .el-table .el-select__wrapper {
+  min-height: 24px;
+}
+
 .tab-tip {
   display: flex;
   align-items: center;
@@ -260,6 +299,15 @@ body {
   flex-direction: column;
   min-height: 0;
   height: 100%;
+}
+
+/* 状态色带：整块界面里唯一的高饱和提示，表达本次请求结果 */
+.response-panel::before {
+  content: '';
+  display: block;
+  flex: 0 0 3px;
+  background: var(--status-color, transparent);
+  transition: background 0.2s ease;
 }
 
 .resp-head {
@@ -436,6 +484,22 @@ body {
   opacity: 1;
 }
 
+.row-time {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+}
+
+.tab-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background: var(--el-color-danger);
+  vertical-align: middle;
+}
+
 .side-row {
   display: flex;
   align-items: center;
@@ -460,11 +524,14 @@ body {
 }
 
 @media (max-width: 960px) {
-  .pane-request {
-    height: 52%;
-  }
   .env-select {
     width: 140px;
+  }
+  .splitter {
+    display: none;
+  }
+  .pane-request {
+    flex: 0 0 52%;
   }
 }
 
@@ -472,6 +539,11 @@ body {
   .app-main {
     padding: 8px;
     gap: 8px;
+  }
+  .pane-request {
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 260px;
   }
   .url-bar {
     flex-wrap: wrap;

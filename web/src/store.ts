@@ -41,6 +41,7 @@ export const state = reactive({
   collections: [] as Collection[],
   currentCollectionId: null as number | null,
   savedRequests: [] as SavedRequest[],
+  collectionSearch: '',
 
   history: [] as HistoryItem[],
   historySearch: '',
@@ -51,6 +52,9 @@ export const state = reactive({
   sideTab: 'history',
   responseTab: 'body',
   rawView: false,
+
+  saveDialogOpen: false,
+  saveName: '',
 
   sidebarVisible: true,
 })
@@ -242,6 +246,26 @@ export async function saveCurrentRequest(name: string) {
   } catch (e) {
     toast(`保存失败：${String(e)}`, { type: 'error' })
     return false
+  }
+}
+
+/** 打开「保存到集合」对话框（Ctrl+S 复用同一入口） */
+export function openSaveDialog() {
+  if (state.currentCollectionId == null) {
+    state.sideTab = 'collections'
+    toast('请先在左侧选择一个集合', { type: 'warning' })
+    return
+  }
+  state.saveName = state.config.url || '未命名请求'
+  state.saveDialogOpen = true
+}
+
+/** 提交保存对话框 */
+export async function submitSaveDialog() {
+  const ok = await saveCurrentRequest(state.saveName)
+  if (ok) {
+    state.saveDialogOpen = false
+    state.saveName = ''
   }
 }
 

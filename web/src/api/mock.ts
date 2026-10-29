@@ -80,6 +80,7 @@ function mockResponse(config: RequestConfig, env: Record<string, string>): Respo
       ['content-type', 'application/json; charset=utf-8'],
       ['x-mock', '1'],
     ],
+    request_url: url,
     body_text: text,
     body_pretty: pretty,
     body_len: text.length,
