@@ -333,6 +333,11 @@ impl AppState {
 }
 
 impl eframe::App for AppState {
+    /// 清屏色与画布一致，避免未填充区域露出黑色
+    fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
+        egui::Rgba::from(theme::canvas()).to_array()
+    }
+
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.poll_pending();
         ui::draw(ctx, self);

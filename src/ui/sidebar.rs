@@ -8,6 +8,8 @@ use crate::theme;
 use crate::ui::widgets;
 
 pub fn draw(ui: &mut egui::Ui, state: &mut AppState) {
+    // 让侧栏内容铺满面板宽度，避免右侧露出未填充底色
+    ui.set_min_width(ui.available_width());
     side_tab_bar(ui, &mut state.side_tab);
     ui.add_space(8.0);
     match state.side_tab {
@@ -176,7 +178,7 @@ fn collections_panel(ui: &mut egui::Ui, state: &mut AppState) {
             })
             .collect();
         let btn = widgets::select_button(
-            RichText::new(format!("{}  ▾", truncate(&current, 16))).size(13.0),
+            RichText::new(format!("{}  ▼", truncate(&current, 16))).size(13.0),
             width,
         );
         if let Some(i) = widgets::select_popup(ui, "collection_select", width, btn, &items) {
@@ -361,7 +363,7 @@ fn env_panel(ui: &mut egui::Ui, state: &mut AppState) {
             })
             .collect();
         let btn = widgets::select_button(
-            RichText::new(format!("{}  ▾", truncate(&state.current_env, 16))).size(13.0),
+            RichText::new(format!("{}  ▼", truncate(&state.current_env, 16))).size(13.0),
             width,
         );
         if let Some(i) = widgets::select_popup(ui, "env_select", width, btn, &items) {

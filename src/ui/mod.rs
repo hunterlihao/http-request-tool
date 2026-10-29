@@ -122,7 +122,7 @@ fn top_bar(ctx: &egui::Context, state: &mut AppState) {
                         })
                         .collect();
                     let btn = widgets::select_button(
-                        RichText::new(format!("环境 · {}  ▾", state.current_env)).size(12.5),
+                        RichText::new(format!("环境 · {}  ▼", state.current_env)).size(12.5),
                         168.0,
                     );
                     if let Some(i) =

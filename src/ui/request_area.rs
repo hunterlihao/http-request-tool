@@ -45,7 +45,7 @@ fn url_bar(ui: &mut egui::Ui, state: &mut AppState) {
             })
             .collect();
         let btn = widgets::select_button(
-            RichText::new(format!("{}  ▾", state.config.method.as_str()))
+            RichText::new(format!("{}  ▼", state.config.method.as_str()))
                 .monospace()
                 .strong()
                 .color(mc)
@@ -143,7 +143,7 @@ fn body_tab(ui: &mut egui::Ui, state: &mut AppState) {
             })
             .collect();
         let btn = widgets::select_button(
-            RichText::new(format!("{}  ▾", state.config.body_type.label())).size(13.0),
+            RichText::new(format!("{}  ▼", state.config.body_type.label())).size(13.0),
             180.0,
         );
         if let Some(i) = widgets::select_popup(ui, "body_type_select", 200.0, btn, &items) {
@@ -227,7 +227,7 @@ fn auth_tab(ui: &mut egui::Ui, state: &mut AppState) {
             })
             .collect();
         let btn = widgets::select_button(
-            RichText::new(format!("{}  ▾", state.config.auth.auth_type.label())).size(13.0),
+            RichText::new(format!("{}  ▼", state.config.auth.auth_type.label())).size(13.0),
             200.0,
         );
         if let Some(i) = widgets::select_popup(ui, "auth_type_select", 220.0, btn, &items) {
