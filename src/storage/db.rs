@@ -332,10 +332,17 @@ mod tests {
     use crate::model::request::{BodyType, Method, RequestConfig};
 
     fn test_db() -> (Db, std::path::PathBuf) {
-        let path = std::env::temp_dir().join(format!("http_tool_test_{}.db", std::process::id()));
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::SeqCst);
+        let path = std::env::temp_dir().join(format!(
+            "http_tool_test_{}_{}.db",
+            std::process::id(),
+            n
+        ));
         let _ = std::fs::remove_file(&path);
         let db = Db::open(&path).expect("打开测试库失败");
-        (db, path.to_path_buf())
+        (db, path)
     }
 
     fn sample_config() -> RequestConfig {

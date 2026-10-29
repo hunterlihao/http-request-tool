@@ -260,7 +260,7 @@ pub fn send(config: &RequestConfig) -> ResponseData {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::request::RequestConfig;
+    use crate::model::request::{KVPair, RequestConfig};
 
     #[test]
     fn test_build_url_params() {
@@ -273,11 +273,15 @@ mod tests {
                 enabled: true,
             },
             KVPair {
-                key: "a".into(),
-                value: "9".into(),
-                enabled: true,
+                key: "disabled".into(),
+                value: "x".into(),
+                enabled: false,
             },
         ];
+        let url = build_url(&cfg);
+        assert!(url.contains("a=1"), "保留原始查询参数: {url}");
+        assert!(url.contains("b=2"), "追加启用参数: {url}");
+        assert!(!url.contains("disabled"), "停用参数不应拼接: {url}");
     }
 
     #[test]
