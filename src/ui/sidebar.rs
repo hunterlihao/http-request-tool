@@ -28,11 +28,11 @@ fn side_tab_bar(ui: &mut egui::Ui, active: &mut SideTab) {
             let selected = *active == tab;
             let text = RichText::new(label)
                 .size(13.0)
-                .color(if selected { theme::ACCENT } else { theme::TEXT_DIM })
+                .color(if selected { theme::accent() } else { theme::text_dim() })
                 .strong();
             let btn = egui::Button::new(text)
                 .fill(if selected {
-                    theme::ACCENT.gamma_multiply(0.12)
+                    theme::accent().gamma_multiply(0.12)
                 } else {
                     Color32::TRANSPARENT
                 })
@@ -108,7 +108,7 @@ fn history_panel(ui: &mut egui::Ui, state: &mut AppState) {
                         egui::Label::new(
                             RichText::new(truncate(&item.config.url, 34))
                                 .size(12.0)
-                                .color(theme::TEXT),
+                                .color(theme::text()),
                         )
                         .sense(egui::Sense::click())
                         .truncate(),
@@ -177,7 +177,7 @@ fn collections_panel(ui: &mut egui::Ui, state: &mut AppState) {
         // 删除当前集合
         if ui
             .add(
-                egui::Button::new(RichText::new("✕").size(12.0).color(theme::ERROR))
+                egui::Button::new(RichText::new("✕").size(12.0).color(theme::error()))
                     .fill(Color32::TRANSPARENT)
                     .frame(false),
             )
@@ -254,7 +254,7 @@ fn collections_panel(ui: &mut egui::Ui, state: &mut AppState) {
                     );
                     let label = ui.add(
                         egui::Label::new(
-                            RichText::new(truncate(&req.name, 30)).size(12.0).color(theme::TEXT),
+                            RichText::new(truncate(&req.name, 30)).size(12.0).color(theme::text()),
                         )
                         .sense(egui::Sense::click())
                         .truncate(),
@@ -265,7 +265,7 @@ fn collections_panel(ui: &mut egui::Ui, state: &mut AppState) {
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui
                             .add(
-                                egui::Button::new(RichText::new("✕").size(11.0).color(theme::TEXT_DIM))
+                                egui::Button::new(RichText::new("✕").size(11.0).color(theme::text_dim()))
                                     .fill(Color32::TRANSPARENT)
                                     .frame(false),
                             )
@@ -352,7 +352,7 @@ fn env_panel(ui: &mut egui::Ui, state: &mut AppState) {
         if state.current_env != "global"
             && ui
                 .add(
-                    egui::Button::new(RichText::new("✕").size(12.0).color(theme::ERROR))
+                    egui::Button::new(RichText::new("✕").size(12.0).color(theme::error()))
                         .fill(Color32::TRANSPARENT)
                         .frame(false),
                 )
@@ -408,8 +408,8 @@ fn env_panel(ui: &mut egui::Ui, state: &mut AppState) {
                 .num_columns(3)
                 .spacing([8.0, 6.0])
                 .show(ui, |ui| {
-                    ui.label(RichText::new("变量").size(11.0).color(theme::TEXT_DIM));
-                    ui.label(RichText::new("值").size(11.0).color(theme::TEXT_DIM));
+                    ui.label(RichText::new("变量").size(11.0).color(theme::text_dim()));
+                    ui.label(RichText::new("值").size(11.0).color(theme::text_dim()));
                     ui.label("");
                     ui.end_row();
 
@@ -428,7 +428,7 @@ fn env_panel(ui: &mut egui::Ui, state: &mut AppState) {
                         );
                         if ui
                             .add(
-                                egui::Button::new(RichText::new("✕").color(theme::TEXT_DIM))
+                                egui::Button::new(RichText::new("✕").color(theme::text_dim()))
                                     .fill(Color32::TRANSPARENT)
                                     .frame(false),
                             )

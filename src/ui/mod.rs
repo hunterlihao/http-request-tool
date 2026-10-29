@@ -26,7 +26,7 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
             .width_range(240.0..=460.0)
             .frame(
                 egui::Frame::none()
-                    .fill(theme::PANEL)
+                    .fill(theme::panel())
                     .inner_margin(egui::Margin::symmetric(12.0, 10.0)),
             )
             .show(ctx, |ui| {
@@ -37,7 +37,7 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
     egui::CentralPanel::default()
         .frame(
             egui::Frame::none()
-                .fill(theme::CANVAS)
+                .fill(theme::canvas())
                 .inner_margin(egui::Margin::symmetric(16.0, 14.0)),
         )
         .show(ctx, |ui| {
@@ -70,7 +70,7 @@ fn top_bar(ctx: &egui::Context, state: &mut AppState) {
     egui::TopBottomPanel::top("topbar")
         .frame(
             egui::Frame::none()
-                .fill(theme::PANEL)
+                .fill(theme::panel())
                 .inner_margin(egui::Margin::symmetric(16.0, 10.0)),
         )
         .show(ctx, |ui| {
@@ -78,14 +78,14 @@ fn top_bar(ctx: &egui::Context, state: &mut AppState) {
                 // logo 标记
                 let (rect, _) = ui.allocate_exact_size(egui::vec2(12.0, 12.0), egui::Sense::hover());
                 ui.painter()
-                    .rect_filled(rect, Rounding::same(3.0), theme::ACCENT);
+                    .rect_filled(rect, Rounding::same(3.0), theme::accent());
 
                 ui.add_space(4.0);
                 ui.label(
                     RichText::new("HTTP 请求工具")
                         .size(15.0)
                         .strong()
-                        .color(theme::TEXT),
+                        .color(theme::text()),
                 );
                 widgets::hint(ui, "· 便携版");
 
@@ -98,13 +98,25 @@ fn top_bar(ctx: &egui::Context, state: &mut AppState) {
 
                     ui.add_space(8.0);
 
+                    // 主题切换
+                    let theme_label = if state.light { "深色模式" } else { "浅色模式" };
+                    if widgets::subtle_button(ui, theme_label)
+                        .on_hover_text("切换明暗主题")
+                        .clicked()
+                    {
+                        state.light = !state.light;
+                        theme::set_mode(ctx, state.light);
+                    }
+
+                    ui.add_space(8.0);
+
                     // 环境快捷选择
                     egui::ComboBox::from_id_salt("topbar_env")
                         .width(150.0)
                         .selected_text(
                             RichText::new(format!("环境：{}", state.current_env))
                                 .size(12.0)
-                                .color(theme::TEXT),
+                                .color(theme::text()),
                         )
                         .show_ui(ui, |ui| {
                             let names: Vec<_> = state.env_names.clone();
@@ -183,17 +195,17 @@ fn save_dialog(ctx: &egui::Context, state: &mut AppState) {
 fn toast(ctx: &egui::Context, state: &AppState) {
     let Some(t) = &state.toast else { return };
     let color = match t.kind {
-        ToastKind::Info => theme::OK,
-        ToastKind::Error => theme::ERROR,
+        ToastKind::Info => theme::ok(),
+        ToastKind::Error => theme::error(),
     };
     egui::Area::new(egui::Id::new("toast_area"))
         .anchor(Align2::CENTER_BOTTOM, [0.0, -28.0])
         .interactable(false)
         .show(ctx, |ui| {
             egui::Frame::none()
-                .fill(theme::RAISED)
+                .fill(theme::raised())
                 .rounding(Rounding::same(8.0))
-                .stroke(egui::Stroke::new(1.0, theme::BORDER))
+                .stroke(egui::Stroke::new(1.0, theme::border()))
                 .inner_margin(egui::Margin::symmetric(16.0, 10.0))
                 .shadow(egui::epaint::Shadow {
                     offset: egui::vec2(0.0, 4.0),

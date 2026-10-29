@@ -51,10 +51,10 @@ fn url_bar(ui: &mut egui::Ui, state: &mut AppState) {
             });
 
         // URL 输入
-        let send_w = 100.0;
+        let send_w = 108.0;
         let url_w = (ui.available_width() - send_w).max(140.0);
         ui.add_sized(
-            [url_w, 34.0],
+            [url_w, 30.0],
             TextEdit::singleline(&mut state.config.url)
                 .hint_text("https://api.example.com/endpoint")
                 .font(egui::TextStyle::Monospace),
@@ -94,11 +94,11 @@ fn tab_bar(ui: &mut egui::Ui, active: &mut RequestTab) {
             let selected = *active == tab;
             let text = RichText::new(label)
                 .size(13.0)
-                .color(if selected { theme::ACCENT } else { theme::TEXT_DIM })
+                .color(if selected { theme::accent() } else { theme::text_dim() })
                 .strong();
             let btn = egui::Button::new(text)
                 .fill(if selected {
-                    theme::ACCENT.gamma_multiply(0.12)
+                    theme::accent().gamma_multiply(0.12)
                 } else {
                     Color32::TRANSPARENT
                 })

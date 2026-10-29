@@ -87,6 +87,7 @@ pub struct AppState {
     pub side_tab: SideTab,
     pub response_tab: ResponseTab,
     pub show_sidebar: bool,
+    pub light: bool,
     pub toast: Option<Toast>,
     pub body_raw_view: bool,
 }
@@ -116,6 +117,7 @@ impl AppState {
             side_tab: SideTab::History,
             response_tab: ResponseTab::Body,
             show_sidebar: true,
+            light: false,
             toast: None,
             body_raw_view: false,
         };
@@ -382,7 +384,7 @@ pub fn run() -> eframe::Result<()> {
         "http-request-tool",
         options,
         Box::new(move |cc| {
-            theme::apply(&cc.egui_ctx);
+            theme::apply(&cc.egui_ctx, state.light);
             Ok(Box::new(state))
         }),
     )

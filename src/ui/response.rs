@@ -30,10 +30,10 @@ fn status_bar(ui: &mut egui::Ui, state: &mut AppState, resp: &ResponseData) {
     ui.horizontal(|ui| {
         let sc = theme::status_color(resp.status_code);
         widgets::badge(ui, &format!("{} {}", resp.status_code, resp.status_text), sc);
-        widgets::badge(ui, &format!("{} ms", resp.duration_ms), theme::TEXT_DIM);
-        widgets::badge(ui, &human_size(resp.body.len()), theme::TEXT_DIM);
+        widgets::badge(ui, &format!("{} ms", resp.duration_ms), theme::text_dim());
+        widgets::badge(ui, &human_size(resp.body.len()), theme::text_dim());
         if !resp.http_version.is_empty() {
-            widgets::badge(ui, &resp.http_version, theme::REDIRECT);
+            widgets::badge(ui, &resp.http_version, theme::redirect());
         }
 
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -54,10 +54,10 @@ fn status_bar(ui: &mut egui::Ui, state: &mut AppState, resp: &ResponseData) {
                     egui::Button::new(
                         RichText::new("Body")
                             .size(12.0)
-                            .color(if body_sel { theme::ACCENT } else { theme::TEXT_DIM }),
+                            .color(if body_sel { theme::accent() } else { theme::text_dim() }),
                     )
                     .fill(if body_sel {
-                        theme::ACCENT.gamma_multiply(0.12)
+                        theme::accent().gamma_multiply(0.12)
                     } else {
                         Color32::TRANSPARENT
                     })
@@ -74,10 +74,10 @@ fn status_bar(ui: &mut egui::Ui, state: &mut AppState, resp: &ResponseData) {
                     egui::Button::new(
                         RichText::new(format!("Headers ({})", resp.headers.len()))
                             .size(12.0)
-                            .color(if hdr_sel { theme::ACCENT } else { theme::TEXT_DIM }),
+                            .color(if hdr_sel { theme::accent() } else { theme::text_dim() }),
                     )
                     .fill(if hdr_sel {
-                        theme::ACCENT.gamma_multiply(0.12)
+                        theme::accent().gamma_multiply(0.12)
                     } else {
                         Color32::TRANSPARENT
                     })
@@ -108,9 +108,9 @@ fn body_view(ui: &mut egui::Ui, state: &mut AppState, resp: &ResponseData) {
             if ui
                 .add(
                     egui::Button::new(
-                        RichText::new("格式化").size(12.0).color(if fmt { theme::ACCENT } else { theme::TEXT_DIM }),
+                        RichText::new("格式化").size(12.0).color(if fmt { theme::accent() } else { theme::text_dim() }),
                     )
-                    .fill(if fmt { theme::ACCENT.gamma_multiply(0.12) } else { Color32::TRANSPARENT })
+                    .fill(if fmt { theme::accent().gamma_multiply(0.12) } else { Color32::TRANSPARENT })
                     .rounding(Rounding::same(6.0))
                     .frame(false),
                 )
@@ -121,9 +121,9 @@ fn body_view(ui: &mut egui::Ui, state: &mut AppState, resp: &ResponseData) {
             if ui
                 .add(
                     egui::Button::new(
-                        RichText::new("原始").size(12.0).color(if !fmt { theme::ACCENT } else { theme::TEXT_DIM }),
+                        RichText::new("原始").size(12.0).color(if !fmt { theme::accent() } else { theme::text_dim() }),
                     )
-                    .fill(if !fmt { theme::ACCENT.gamma_multiply(0.12) } else { Color32::TRANSPARENT })
+                    .fill(if !fmt { theme::accent().gamma_multiply(0.12) } else { Color32::TRANSPARENT })
                     .rounding(Rounding::same(6.0))
                     .frame(false),
                 )
@@ -176,9 +176,9 @@ fn headers_view(ui: &mut egui::Ui, resp: &ResponseData) {
                             RichText::new(k)
                                 .monospace()
                                 .size(12.0)
-                                .color(theme::ACCENT),
+                                .color(theme::accent()),
                         );
-                        ui.label(RichText::new(v).monospace().size(12.0).color(theme::TEXT));
+                        ui.label(RichText::new(v).monospace().size(12.0).color(theme::text()));
                         ui.end_row();
                     }
                 });
@@ -187,16 +187,16 @@ fn headers_view(ui: &mut egui::Ui, resp: &ResponseData) {
 
 fn error_view(ui: &mut egui::Ui, err: &str, duration_ms: u128) {
     ui.horizontal(|ui| {
-        widgets::badge(ui, "请求失败", theme::ERROR);
-        widgets::badge(ui, &format!("{} ms", duration_ms), theme::TEXT_DIM);
+        widgets::badge(ui, "请求失败", theme::error());
+        widgets::badge(ui, &format!("{} ms", duration_ms), theme::text_dim());
     });
     ui.add_space(10.0);
     egui::Frame::none()
-        .fill(theme::ERROR.gamma_multiply(0.10))
+        .fill(theme::error().gamma_multiply(0.10))
         .rounding(Rounding::same(8.0))
         .inner_margin(egui::Margin::same(12.0))
         .show(ui, |ui| {
-            ui.label(RichText::new(err).color(theme::ERROR).size(13.0));
+            ui.label(RichText::new(err).color(theme::error()).size(13.0));
         });
 }
 
