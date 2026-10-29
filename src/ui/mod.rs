@@ -98,18 +98,6 @@ fn top_bar(ctx: &egui::Context, state: &mut AppState) {
 
                     ui.add_space(8.0);
 
-                    // 主题切换
-                    let theme_label = if state.light { "深色模式" } else { "浅色模式" };
-                    if widgets::subtle_button(ui, theme_label)
-                        .on_hover_text("切换明暗主题")
-                        .clicked()
-                    {
-                        state.light = !state.light;
-                        theme::set_mode(ctx, state.light);
-                    }
-
-                    ui.add_space(8.0);
-
                     // 环境快捷选择
                     egui::ComboBox::from_id_salt("topbar_env")
                         .width(150.0)
