@@ -7,7 +7,7 @@ edition = "2024"
 [dependencies]
 eframe = "0.29"
 egui = "0.29"
-reqwest = { version = "0.12", default-features = false, features = ["json", "blocking", "multipart", "native-tls", "stream"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "blocking", "multipart", "native-tls", "stream", "gzip", "deflate", "http2", "charset"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rusqlite = { version = "0.32", features = ["bundled"] }

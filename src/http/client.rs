@@ -9,7 +9,7 @@ use reqwest::header::{HeaderMap, HeaderName, HeaderValue, AUTHORIZATION, CONTENT
 use crate::model::request::{AuthType, BodyType, Method, RequestConfig, ResponseData};
 
 /// 构造基础 URL：params 追加到 query
-fn build_url(config: &RequestConfig) -> String {
+pub(crate) fn build_url(config: &RequestConfig) -> String {
     let mut url = config.url.trim().to_string();
     if url.is_empty() {
         return url;
@@ -27,7 +27,12 @@ fn build_url(config: &RequestConfig) -> String {
         for (k, v) in &pairs {
             qs.append_pair(k, v);
         }
-        parsed.set_query(Some(&qs.finish()));
+        let qs = qs.finish();
+        if qs.is_empty() {
+            parsed.set_query(None);
+        } else {
+            parsed.set_query(Some(&qs));
+        }
         url = parsed.to_string();
     }
     url
