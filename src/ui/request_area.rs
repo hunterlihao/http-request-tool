@@ -57,7 +57,8 @@ fn url_bar(ui: &mut egui::Ui, state: &mut AppState) {
             [url_w, 30.0],
             TextEdit::singleline(&mut state.config.url)
                 .hint_text("https://api.example.com/endpoint")
-                .font(egui::TextStyle::Monospace),
+                .font(egui::TextStyle::Monospace)
+                .vertical_align(egui::Align::Center),
         );
 
         // 发送按钮
