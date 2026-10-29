@@ -6,6 +6,8 @@
 - **够用就好**：常用方法、Header、Query、Body、Auth、代理、超时一屏配完，不做团队协作/云同步那套重的东西
 - **界面**：Vue 3 + Element Plus；**内核**：Rust + `reqwest` + `rusqlite`（bundled，无外部依赖）
 
+> 23 秒宣传片：[docs/promo/HttpTool-promo.mp4](docs/promo/HttpTool-promo.mp4)（1920×1080，画面来自真实界面与真实请求）
+
 ## 界面
 
 ![请求与响应](docs/images/request.png)
