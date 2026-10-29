@@ -59,6 +59,52 @@ function replaceVars(text: string, env: Record<string, string>) {
   )
 }
 
+
+/**
+ * 开发预览时**真的发一次请求**（浏览器受 CORS 限制，失败就退回本地 mock）。
+ * 这样 `npm run dev` 里看到的响应是真数据，截图/调试都有意义；
+ * 打包后的桌面版走 Rust 的 reqwest，不受 CORS 约束。
+ */
+async function realResponse(config: RequestConfig, env: Record<string, string>): Promise<ResponseView> {
+  const url = new URL(replaceVars(config.url, env))
+  for (const p of config.params) {
+    if (p.enabled && p.key) url.searchParams.append(p.key, replaceVars(p.value, env))
+  }
+  const headers: Record<string, string> = {}
+  for (const h of config.headers) {
+    if (h.enabled && h.key) headers[h.key] = replaceVars(h.value, env)
+  }
+  const init: RequestInit = { method: config.method.toUpperCase(), headers }
+  if (config.body && String(config.body_type) !== 'None') init.body = replaceVars(config.body, env)
+  const t0 = performance.now()
+  const r = await fetch(url.toString(), init)
+  const text = await r.text()
+  const dur = Math.round(performance.now() - t0)
+  let pretty = text
+  try {
+    pretty = JSON.stringify(JSON.parse(text), null, 2)
+  } catch {
+    /* 不是 JSON 就原样 */
+  }
+  const hs: [string, string][] = []
+  r.headers.forEach((v, k) => hs.push([k, v]))
+  return {
+    status_code: r.status,
+    status_text: r.statusText,
+    http_version: 'HTTP/1.1',
+    headers: hs,
+    request_url: url.toString(),
+    body_text: text,
+    body_pretty: pretty,
+    body_len: text.length,
+    truncated: false,
+    is_binary: false,
+    duration_ms: dur,
+    content_type: r.headers.get('content-type') ?? '',
+    error: null,
+  }
+}
+
 function mockResponse(config: RequestConfig, env: Record<string, string>): ResponseView {
   const url = replaceVars(config.url, env)
   const body = {
@@ -97,13 +143,19 @@ export async function handle(cmd: string, args: Record<string, unknown> = {}): P
     case 'send_request': {
       const config = args.config as RequestConfig
       const env = (args.envVars ?? {}) as Record<string, string>
-      const resp = mockResponse(config, env)
+      let resp: ResponseView
+      try {
+        resp = await realResponse(config, env)
+      } catch (e) {
+        console.warn('[mock] 真实请求失败，退回本地 mock：', e)
+        resp = mockResponse(config, env)
+      }
       const item: HistoryItem = {
         id: nextId(),
         config: JSON.parse(JSON.stringify(config)),
         created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-        status_code: 200,
-        duration_ms: 18,
+        status_code: resp.status_code,
+        duration_ms: resp.duration_ms,
       }
       db.history.unshift(item)
       db.history = db.history.slice(0, 200)

@@ -6,6 +6,12 @@
 - **够用就好**：常用方法、Header、Query、Body、Auth、代理、超时一屏配完，不做团队协作/云同步那套重的东西
 - **界面**：Vue 3 + Element Plus；**内核**：Rust + `reqwest` + `rusqlite`（bundled，无外部依赖）
 
+## 界面
+
+![请求与响应](docs/images/request.png)
+
+> 截图为浏览器 dev 预览模式（mock 层会**真实发起请求**），界面与打包后的桌面版一致，仅少系统窗口边框。
+> 自己也能抓：`npx vite --port 5199` 起前端，再 `node scripts/shoot-ui.mjs`（脚本里是真实点击路径）。
 ## 功能
 
 **请求**
