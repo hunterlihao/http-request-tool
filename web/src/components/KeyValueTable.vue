@@ -36,6 +36,10 @@ function removeRow(index: number) {
 
 <template>
   <div class="kv-editor">
+    <div class="kv-toolbar">
+      <el-button text type="primary" size="small" :icon="Plus" @click="addRow">{{ addText }}</el-button>
+    </div>
+
     <el-table :data="rows" size="small" style="width: 100%" empty-text="暂无内容">
       <el-table-column width="48" align="center">
         <template #header>
@@ -79,9 +83,5 @@ function removeRow(index: number) {
         </template>
       </el-table-column>
     </el-table>
-
-    <div class="kv-actions">
-      <el-button text type="primary" :icon="Plus" @click="addRow">{{ addText }}</el-button>
-    </div>
   </div>
 </template>
