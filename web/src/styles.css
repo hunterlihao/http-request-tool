@@ -603,6 +603,34 @@ body {
   gap: 8px;
 }
 
+.file-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--el-border-color);
+}
+
+.file-row {
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.file-row:hover {
+  background: var(--el-fill-color-light);
+}
+
+.file-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+}
+
 .env-grid-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) 28px;

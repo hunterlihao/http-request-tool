@@ -75,4 +75,6 @@ export const api = {
 
   // 文件
   pickFile: () => call<string | null>('pick_file'),
+  pickFiles: () => call<string[]>('pick_files'),
+  cookiesClear: () => call<void>('cookies_clear'),
 }

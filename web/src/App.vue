@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { Menu, Setting } from '@element-plus/icons-vue'
+import { getCurrentWebview } from '@tauri-apps/api/webview'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 
+import { inTauri } from '@/api'
 import RequestPanel from '@/components/RequestPanel.vue'
 import ResponsePanel from '@/components/ResponsePanel.vue'
 import SidePanel from '@/components/SidePanel.vue'
-import { init, loadEnv, openSaveDialog, sendRequest, state } from '@/store'
+import { init, loadEnv, openSaveDialog, sendRequest, state, toast } from '@/store'
 
 const drawerOpen = ref(false)
 const narrow = ref(false)
@@ -54,11 +56,34 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
+let unlistenDrop: (() => void) | undefined
+
+/** 把拖进窗口的文件加入 multipart 列表 */
+async function listenFileDrop() {
+  if (!inTauri) return
+  unlistenDrop = await getCurrentWebview().onDragDropEvent((event) => {
+    if (event.payload.type !== 'drop') return
+    const paths = event.payload.paths ?? []
+    if (!paths.length) return
+    state.config.body_type = 'Multipart'
+    if (!state.config.file_paths.length && state.config.file_path) state.config.file_path = ''
+    let added = 0
+    for (const path of paths) {
+      if (!state.config.file_paths.includes(path)) {
+        state.config.file_paths.push(path)
+        added += 1
+      }
+    }
+    if (added) toast(`已添加 ${added} 个文件到 Multipart`)
+  })
+}
+
 onMounted(async () => {
   syncNarrow()
   window.addEventListener('resize', syncNarrow)
   window.addEventListener('keydown', handleKeydown)
   await init()
+  listenFileDrop().catch(() => {})
 })
 
 onBeforeUnmount(() => {
@@ -66,6 +91,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown)
   window.removeEventListener('pointermove', onPointerMove)
   window.removeEventListener('pointerup', stopDrag)
+  unlistenDrop?.()
 })
 </script>
 

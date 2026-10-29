@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { DocumentDelete, FolderOpened, MagicStick, Upload } from '@element-plus/icons-vue'
+import { Delete, DocumentDelete, FolderOpened, MagicStick, Upload } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { computed, ref } from 'vue'
 
@@ -15,10 +15,41 @@ import {
   METHOD_LABEL,
 } from '@/api/types'
 import KeyValueTable from '@/components/KeyValueTable.vue'
-import { cancelRequest, copyCurl, importCurl, sendRequest, state } from '@/store'
+import { cancelRequest, copyAsCode, importCurl, sendRequest, state } from '@/store'
 
 const curlDialog = ref(false)
 const curlText = ref('')
+
+/** 输入 {{ 后提示可用的变量（环境变量 + 内置变量） */
+function suggestVars(_query: string, cb: (items: { value: string }[]) => void) {
+  const text = state.config.url
+  const at = text.lastIndexOf('{{')
+  if (at < 0) return cb([])
+  const tail = text.slice(at + 2)
+  // 已经闭合的不再提示
+  if (tail.includes('}}')) return cb([])
+  const partial = tail.trim().toLowerCase()
+  const names = [
+    ...Object.keys(state.envMap),
+    '$timestamp',
+    '$isoTimestamp',
+    '$guid',
+    '$randomInt',
+  ]
+  cb(
+    names
+      .filter((name) => name.toLowerCase().includes(partial))
+      .map((name) => ({ value: name })),
+  )
+}
+
+/** 选中变量后补全为 {{name}}，替换掉未闭合的部分 */
+function onVarInsert(item: { value: string }) {
+  const text = state.config.url
+  const at = text.lastIndexOf('{{')
+  if (at < 0) return
+  state.config.url = `${text.slice(0, at)}{{${item.value}}}`
+}
 
 const paramsCount = () => state.config.params.filter((p) => p.key.trim()).length
 const headersCount = () => state.config.headers.filter((h) => h.key.trim()).length
@@ -48,9 +79,41 @@ async function submitCurl() {
   }
 }
 
-async function chooseFile() {
-  const path = await api.pickFile()
-  if (path) state.config.file_path = path
+/** multipart 已选文件（兼容旧的单文件字段） */
+const files = computed(() =>
+  state.config.file_paths.length
+    ? state.config.file_paths
+    : state.config.file_path
+      ? [state.config.file_path]
+      : [],
+)
+
+function baseName(path: string): string {
+  return path.split(/[\\/]/).pop() || path
+}
+
+function removeFile(index: number) {
+  if (state.config.file_paths.length) state.config.file_paths.splice(index, 1)
+  else state.config.file_path = ''
+}
+
+async function chooseFiles() {
+  const paths = await api.pickFiles()
+  if (!paths.length) return
+  // 首次追加时把旧字段迁移进列表
+  if (!state.config.file_paths.length && state.config.file_path) state.config.file_path = ''
+  for (const path of paths) {
+    if (!state.config.file_paths.includes(path)) state.config.file_paths.push(path)
+  }
+}
+
+async function clearCookies() {
+  try {
+    await api.cookiesClear()
+    ElMessage.success('已清除本次运行的 Cookie')
+  } catch (e) {
+    ElMessage.error(`清除失败：${String(e)}`)
+  }
 }
 
 /** 跳转到环境变量页补全变量 */
@@ -104,11 +167,14 @@ function importParamsFromUrl() {
         </el-option>
       </el-select>
 
-      <el-input
+      <el-autocomplete
         v-model="state.config.url"
         class="url-input"
         placeholder="https://api.example.com/endpoint"
         clearable
+        :fetch-suggestions="suggestVars"
+        :trigger-on-focus="false"
+        @select="onVarInsert"
         @keyup.enter="sendRequest"
       />
 
@@ -140,7 +206,16 @@ function importParamsFromUrl() {
       </el-tooltip>
       <div class="meta-right">
         <el-button text size="small" :icon="Upload" @click="curlDialog = true">导入 cURL</el-button>
-        <el-button text size="small" :icon="MagicStick" @click="copyCurl">复制 cURL</el-button>
+        <el-dropdown trigger="click" @command="copyAsCode">
+          <el-button text size="small" :icon="MagicStick">复制为代码</el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="curl">cURL</el-dropdown-item>
+              <el-dropdown-item command="fetch">fetch</el-dropdown-item>
+              <el-dropdown-item command="axios">axios</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
     </div>
 
@@ -248,7 +323,7 @@ function importParamsFromUrl() {
           </template>
 
           <template v-else>
-            <span class="hint">multipart/form-data 表单字段与文件</span>
+            <span class="hint">multipart/form-data：表单字段 + 文件（也可以直接把文件拖进窗口）</span>
             <KeyValueTable
               v-model="state.config.form_fields"
               key-label="字段"
@@ -256,13 +331,27 @@ function importParamsFromUrl() {
               key-placeholder="字段"
               value-placeholder="值"
             />
-            <div class="side-row" style="margin-top: 8px">
-              <el-input
-                v-model="state.config.file_path"
-                placeholder="选择要上传的文件"
-                readonly
-              />
-              <el-button :icon="FolderOpened" @click="chooseFile">浏览…</el-button>
+
+            <div class="file-block">
+              <div class="side-row">
+                <span class="hint">文件字段名</span>
+                <el-input
+                  v-model="state.config.file_field"
+                  size="small"
+                  style="width: 150px"
+                  placeholder="file"
+                />
+                <el-button size="small" :icon="FolderOpened" @click="chooseFiles">添加文件</el-button>
+                <span v-if="files.length" class="hint">已选 {{ files.length }} 个</span>
+              </div>
+              <div
+                v-for="(path, index) in files"
+                :key="`${path}-${index}`"
+                class="side-row file-row"
+              >
+                <span class="mono file-name" :title="path">{{ baseName(path) }}</span>
+                <el-button text size="small" :icon="Delete" @click="removeFile(index)" />
+              </div>
             </div>
           </template>
         </div>
@@ -349,6 +438,14 @@ function importParamsFromUrl() {
                   style="max-width: 360px; margin-top: 6px"
                 />
                 <div v-else class="hint" style="margin-top: 4px">默认跟随系统代理设置</div>
+              </div>
+            </el-form-item>
+            <el-form-item label="Cookie">
+              <div style="width: 100%">
+                <span class="hint">本次运行内自动保存并回带 Cookie（响应里的 Set-Cookie）</span>
+                <el-button text type="danger" size="small" style="margin-left: 8px" @click="clearCookies">
+                  清除 Cookie
+                </el-button>
               </div>
             </el-form-item>
           </el-form>

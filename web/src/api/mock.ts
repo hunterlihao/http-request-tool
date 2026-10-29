@@ -302,6 +302,10 @@ export async function handle(cmd: string, args: Record<string, unknown> = {}): P
     }
     case 'pick_file':
       return null
+    case 'pick_files':
+      return []
+    case 'cookies_clear':
+      return null
     default:
       throw new Error(`未知命令：${cmd}`)
   }

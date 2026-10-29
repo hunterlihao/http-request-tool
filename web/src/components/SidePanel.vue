@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Delete, Edit, FolderAdd, Search } from '@element-plus/icons-vue'
+import { CopyDocument, Delete, Edit, FolderAdd, Search } from '@element-plus/icons-vue'
 import { computed, ref } from 'vue'
 
 import { METHOD_COLOR, METHOD_LABEL, statusColor, type HistoryItem } from '@/api/types'
@@ -12,6 +12,7 @@ import {
   deleteHistory,
   deleteSavedRequest,
   dropCurrentEnv,
+  duplicateSavedRequest,
   exportCollection,
   importCollection,
   loadEnv,
@@ -268,6 +269,13 @@ function addEnvVar() {
               />
               <span v-else class="text" :title="req.name">{{ req.name }}</span>
               <span class="row-actions">
+                <el-button
+                  text
+                  size="small"
+                  :icon="CopyDocument"
+                  title="创建副本"
+                  @click.stop="duplicateSavedRequest(req.id)"
+                />
                 <el-button
                   text
                   size="small"

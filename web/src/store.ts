@@ -1,6 +1,6 @@
 /** 全局状态与业务流程编排（与原有 Rust 端逻辑一一对应） */
 
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { reactive, watch } from 'vue'
 
 import { api } from '@/api'
@@ -82,6 +82,8 @@ export async function init() {
     toast(`初始化失败：${String(e)}`, { type: 'error', duration: 3500 })
   }
   await Promise.all([refreshCollections(), refreshHistory()])
+  // 初始化完成后才开始跟踪草稿变更
+  draftReady = true
 }
 
 /** 兼容旧数据：补齐缺失字段 */
@@ -93,6 +95,8 @@ export function normalizeConfig(cfg: Partial<RequestConfig>): RequestConfig {
     params: cfg.params ?? [],
     headers: cfg.headers ?? [],
     form_fields: cfg.form_fields ?? [],
+    file_paths: cfg.file_paths ?? [],
+    file_field: cfg.file_field || base.file_field,
     auth: { ...base.auth, ...(cfg.auth ?? {}) },
   }
 }
@@ -235,10 +239,28 @@ export async function createCollection(name: string) {
   }
 }
 
+/** 统一的二次确认：避免误点删除不可恢复的数据 */
+async function confirmDanger(message: string, title = '确认删除'): Promise<boolean> {
+  try {
+    await ElMessageBox.confirm(message, title, {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+      confirmButtonClass: 'el-button--danger',
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
 export async function deleteCollection(id: number) {
+  const col = state.collections.find((c) => c.id === id)
+  if (!(await confirmDanger(`删除集合「${col?.name ?? id}」及其中的所有请求？`))) return
   try {
     await api.collectionDelete(id)
     state.currentCollectionId = null
+    state.currentSavedId = null
     await refreshCollections()
     toast('已删除集合')
   } catch (e) {
@@ -329,11 +351,27 @@ export async function submitSaveDialog(overwrite = false) {
 }
 
 export async function deleteSavedRequest(id: number) {
+  const item = state.savedRequests.find((r) => r.id === id)
+  if (!(await confirmDanger(`删除已保存的请求「${item?.name ?? id}」？`))) return
   try {
     await api.savedDelete(id)
+    if (state.currentSavedId === id) state.currentSavedId = null
     await refreshSaved()
   } catch (e) {
     toast(`删除失败：${String(e)}`, { type: 'error' })
+  }
+}
+
+/** 复制一份已保存请求（便于派生不同环境的版本） */
+export async function duplicateSavedRequest(id: number) {
+  const item = state.savedRequests.find((r) => r.id === id)
+  if (!item || state.currentCollectionId == null) return
+  try {
+    await api.savedSave(state.currentCollectionId, `${item.name} 副本`, clone(item.config))
+    await refreshSaved()
+    toast('已创建副本')
+  } catch (e) {
+    toast(`复制失败：${String(e)}`, { type: 'error' })
   }
 }
 
@@ -375,6 +413,7 @@ export async function refreshHistory() {
 }
 
 export async function clearHistory() {
+  if (!(await confirmDanger('清空全部历史记录？此操作不可恢复', '清空历史'))) return
   try {
     await api.historyClear()
     state.history = []
@@ -385,6 +424,7 @@ export async function clearHistory() {
 }
 
 export async function deleteHistory(id: number) {
+  if (!(await confirmDanger('删除这条历史记录？'))) return
   try {
     await api.historyDelete(id)
     await refreshHistory()
@@ -431,10 +471,128 @@ export async function cancelRequest() {
 }
 
 export async function copyCurl() {
+  await copyAsCode('curl')
+}
+
+// ---------- 复制为代码 ----------
+
+export type CodeTarget = 'curl' | 'fetch' | 'axios'
+
+/** 用当前环境变量替换文本中的 {{var}}（内置 $ 变量交给后端处理） */
+function resolveVars(text: string): string {
+  return text.replace(/\{\{\s*([\w.$-]+)\s*\}\}/g, (all, name: string) =>
+    Object.prototype.hasOwnProperty.call(state.envMap, name) ? state.envMap[name] : all,
+  )
+}
+
+/** 拼出最终请求 URL（含启用中的查询参数） */
+function resolvedUrl(): string {
+  const url = resolveVars(state.config.url.trim())
   try {
-    const text = await api.curlExport(clone(state.config), state.envMap)
-    await copyText(text)
-    toast('已复制 cURL 命令')
+    const parsed = new URL(url)
+    for (const p of state.config.params.filter((p) => p.enabled && p.key.trim())) {
+      parsed.searchParams.append(resolveVars(p.key), resolveVars(p.value))
+    }
+    return parsed.toString()
+  } catch {
+    return url
+  }
+}
+
+/** 最终请求头（含认证注入与自动 Content-Type） */
+function resolvedHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {}
+  for (const h of state.config.headers.filter((h) => h.enabled && h.key.trim())) {
+    headers[resolveVars(h.key.trim())] = resolveVars(h.value)
+  }
+  const auth = state.config.auth
+  if (auth.auth_type === 'Basic') {
+    headers['Authorization'] = `Basic ${btoa(`${resolveVars(auth.username)}:${resolveVars(auth.password)}`)}`
+  } else if (auth.auth_type === 'Bearer' && auth.token) {
+    headers['Authorization'] = `Bearer ${resolveVars(auth.token)}`
+  } else if (auth.auth_type === 'CustomHeader' && auth.header_name.trim()) {
+    headers[resolveVars(auth.header_name.trim())] = resolveVars(auth.header_value)
+  }
+  const hasContentType = Object.keys(headers).some((k) => k.toLowerCase() === 'content-type')
+  if (!hasContentType) {
+    const byType: Record<string, string> = {
+      Json: 'application/json',
+      Text: 'text/plain',
+      Form: 'application/x-www-form-urlencoded',
+    }
+    const ct = byType[state.config.body_type]
+    if (ct) headers['Content-Type'] = ct
+  }
+  return headers
+}
+
+/** 最终请求体（multipart 只提示，不展开） */
+function resolvedBody(): string | null {
+  const cfg = state.config
+  if (cfg.body_type === 'Json' || cfg.body_type === 'Text') {
+    return cfg.body.trim() ? resolveVars(cfg.body) : null
+  }
+  if (cfg.body_type === 'Form') {
+    const fields = cfg.form_fields.filter((f) => f.enabled && f.key.trim())
+    if (!fields.length) return null
+    const params = new URLSearchParams()
+    for (const f of fields) params.append(resolveVars(f.key), resolveVars(f.value))
+    return params.toString()
+  }
+  return null
+}
+
+function jsString(value: string): string {
+  return JSON.stringify(value)
+}
+
+/** 按目标语言生成代码片段 */
+function buildCode(target: Exclude<CodeTarget, 'curl'>): string {
+  const method = state.config.method.toUpperCase()
+  const url = resolvedUrl()
+  const headers = resolvedHeaders()
+  const body = resolvedBody()
+
+  if (target === 'fetch') {
+    const lines = [`const res = await fetch(${jsString(url)}, {`, `  method: ${jsString(method)},`]
+    if (Object.keys(headers).length) {
+      lines.push('  headers: {')
+      for (const [k, v] of Object.entries(headers)) lines.push(`    ${jsString(k)}: ${jsString(v)},`)
+      lines.push('  },')
+    }
+    if (body != null) lines.push(`  body: ${jsString(body)},`)
+    lines.push('})', 'if (!res.ok) throw new Error(`HTTP ${res.status}`)', 'const data = await res.json()')
+    return lines.join('\n')
+  }
+
+  const lines = [
+    "import axios from 'axios'",
+    '',
+    'const { data } = await axios.request({',
+    `  url: ${jsString(url)},`,
+    `  method: ${jsString(method.toLowerCase())},`,
+  ]
+  if (Object.keys(headers).length) {
+    lines.push('  headers: {')
+    for (const [k, v] of Object.entries(headers)) lines.push(`    ${jsString(k)}: ${jsString(v)},`)
+    lines.push('  },')
+  }
+  if (body != null) lines.push(`  data: ${jsString(body)},`)
+  lines.push('})')
+  return lines.join('\n')
+}
+
+/** 复制当前请求为可直接粘贴的代码 */
+export async function copyAsCode(target: CodeTarget) {
+  try {
+    let code: string
+    if (target === 'curl') {
+      code = await api.curlExport(clone(state.config), state.envMap)
+    } else {
+      code = buildCode(target)
+    }
+    await copyText(code)
+    toast(`已复制 ${target === 'curl' ? 'cURL' : target} 代码`)
   } catch (e) {
     toast(`复制失败：${String(e)}`, { type: 'error' })
   }
@@ -507,6 +665,21 @@ watch(
         state.undefinedVars = []
       }
     }, 250)
+  },
+  { deep: true },
+)
+
+// 草稿自动保存：编辑后防抖落库，关窗也不会丢掉没发送的内容
+let draftTimer: number | undefined
+let draftReady = false
+watch(
+  () => state.config,
+  () => {
+    if (!draftReady) return
+    window.clearTimeout(draftTimer)
+    draftTimer = window.setTimeout(() => {
+      api.setLastConfig(clone(state.config)).catch(() => {})
+    }, 800)
   },
   { deep: true },
 )

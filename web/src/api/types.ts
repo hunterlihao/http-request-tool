@@ -32,7 +32,12 @@ export interface RequestConfig {
   follow_redirects: boolean
   timeout_secs: number
   proxy: string
+  /** 旧版单文件字段（保留兼容） */
   file_path: string
+  /** multipart 文件字段名 */
+  file_field: string
+  /** multipart 上传文件列表 */
+  file_paths: string[]
   use_custom_proxy: boolean
 }
 
@@ -170,6 +175,8 @@ export function emptyConfig(): RequestConfig {
     timeout_secs: 30,
     proxy: '',
     file_path: '',
+    file_field: 'file',
+    file_paths: [],
     use_custom_proxy: false,
   }
 }
