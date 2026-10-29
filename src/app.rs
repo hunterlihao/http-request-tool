@@ -456,6 +456,7 @@ pub fn run() -> eframe::Result<()> {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1300.0, 880.0])
             .with_min_inner_size([980.0, 640.0])
+            .with_icon(crate::icon::window_icon())
             .with_title("HTTP 请求工具"),
         ..Default::default()
     };

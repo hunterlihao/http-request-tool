@@ -2,6 +2,7 @@
 
 mod app;
 mod http;
+mod icon;
 mod model;
 mod storage;
 mod theme;
