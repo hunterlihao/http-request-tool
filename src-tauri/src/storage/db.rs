@@ -213,6 +213,17 @@ impl Db {
         Ok(())
     }
 
+    /// 只保留最近 `keep` 条历史，避免库无限膨胀
+    pub fn trim_history(&self, keep: i64) -> Result<()> {
+        self.conn
+            .execute(
+                "DELETE FROM history WHERE id NOT IN (SELECT id FROM history ORDER BY id DESC LIMIT ?1)",
+                params![keep],
+            )
+            .context("清理历史失败")?;
+        Ok(())
+    }
+
     // ---------- 环境变量 ----------
 
     pub fn list_env_names(&self) -> Result<Vec<String>> {
@@ -410,6 +421,23 @@ mod tests {
         db.delete_history(h[0].id).unwrap();
         let h = db.list_history(10).unwrap();
         assert_eq!(h.len(), 1);
+        drop(db);
+        let _ = std::fs::remove_file(&p);
+        let _ = std::fs::remove_file(format!("{}-wal", p.display()));
+        let _ = std::fs::remove_file(format!("{}-shm", p.display()));
+    }
+
+    #[test]
+    fn test_history_trim() {
+        let (db, p) = test_db();
+        let cfg = sample_config();
+        for i in 0..5 {
+            db.add_history(&cfg, Some(200), Some(i)).unwrap();
+        }
+        db.trim_history(2).unwrap();
+        let h = db.list_history(10).unwrap();
+        assert_eq!(h.len(), 2);
+        assert_eq!(h[0].duration_ms, Some(4)); // 保留最新的两条
         drop(db);
         let _ = std::fs::remove_file(&p);
         let _ = std::fs::remove_file(format!("{}-wal", p.display()));

@@ -36,12 +36,14 @@ pub fn run() {
     let state = AppState {
         db: Mutex::new(db),
         last_response: Mutex::new(None),
+        active_cancel: Mutex::new(None),
     };
 
     tauri::Builder::default()
         .manage(state)
         .invoke_handler(tauri::generate_handler![
             commands::send_request,
+            commands::cancel_request,
             commands::undefined_vars,
             commands::save_response_file,
             commands::get_last_config,

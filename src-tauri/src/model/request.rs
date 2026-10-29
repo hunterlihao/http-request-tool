@@ -213,6 +213,10 @@ pub struct ResponseData {
     pub http_version: String,
     pub headers: Vec<(String, String)>,
     pub body: Vec<u8>,
+    /// 响应体是否为二进制（图片 / 压缩包 / 字体等，不应按文本渲染）
+    pub is_binary: bool,
+    /// 响应体是否因超过读取上限被截断
+    pub body_truncated: bool,
     /// 请求总耗时（毫秒）
     pub duration_ms: u128,
     /// 错误信息（请求失败时填充）

@@ -1,10 +1,11 @@
 //! Tauri 命令层：复用原有业务逻辑（client / db / curl / vars），向前端暴露接口
 
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use serde::Serialize;
 use tauri::State;
+use tokio::sync::Notify;
 
 use crate::http::{client, curl};
 use crate::model::request::{RequestConfig, ResponseData};
@@ -17,6 +18,8 @@ pub struct AppState {
     pub db: Mutex<Db>,
     /// 最近一次响应（保留完整字节，供「下载」使用）
     pub last_response: Mutex<Option<ResponseData>>,
+    /// 正在进行中的请求的取消信号
+    pub active_cancel: Mutex<Option<Arc<Notify>>>,
 }
 
 fn err<E: std::fmt::Display>(e: E) -> String {
@@ -25,6 +28,9 @@ fn err<E: std::fmt::Display>(e: E) -> String {
 
 /// 响应体展示上限（超出部分不返回给界面，避免前端卡死）
 const MAX_BODY: usize = 1024 * 1024;
+
+/// 历史最多保留的条数
+const HISTORY_LIMIT: i64 = 500;
 
 /// 返回给前端的响应视图
 #[derive(Serialize)]
@@ -41,6 +47,8 @@ pub struct ResponseView {
     pub body_pretty: String,
     pub body_len: usize,
     pub truncated: bool,
+    /// 二进制响应（不做文本渲染，只提示大小并允许下载）
+    pub is_binary: bool,
     pub duration_ms: u64,
     pub content_type: String,
     pub error: Option<String>,
@@ -76,11 +84,17 @@ fn to_view(resp: &ResponseData, request_url: String) -> ResponseView {
     while end > 0 && end < resp.body.len() && (resp.body[end] & 0xC0) == 0x80 {
         end -= 1;
     }
-    let text = String::from_utf8_lossy(&resp.body[..end]).to_string();
-    let pretty = if truncated {
-        text.clone()
+    // 二进制内容不转文本，避免整屏乱码
+    let (text, pretty) = if resp.is_binary {
+        (String::new(), String::new())
     } else {
-        resp.formatted_body()
+        let text = String::from_utf8_lossy(&resp.body[..end]).to_string();
+        let pretty = if truncated {
+            text.clone()
+        } else {
+            resp.formatted_body()
+        };
+        (text, pretty)
     };
     let content_type = resp
         .headers
@@ -98,7 +112,8 @@ fn to_view(resp: &ResponseData, request_url: String) -> ResponseView {
         body_text: text,
         body_pretty: pretty,
         body_len: resp.body.len(),
-        truncated,
+        truncated: truncated || resp.body_truncated,
+        is_binary: resp.is_binary,
         duration_ms: resp.duration_ms as u64,
         content_type,
         error: resp.error.clone(),
@@ -132,33 +147,63 @@ fn guess_filename(content_type: &str) -> String {
 
 // ---------- 请求 ----------
 
+/// 去掉认证信息后的副本：历史只记录请求内容，不记录 token / 密码
+fn without_secrets(config: &RequestConfig) -> RequestConfig {
+    let mut cfg = config.clone();
+    cfg.auth = Default::default();
+    cfg
+}
+
 /// 发送请求：变量替换 → 发送 → 写历史 → 记住当前请求
 #[tauri::command]
-pub fn send_request(
+pub async fn send_request(
     state: State<'_, AppState>,
     config: RequestConfig,
     env_vars: HashMap<String, String>,
 ) -> Result<ResponseView, String> {
     let resolved = resolve_config(&config, &env_vars);
     let request_url = client::build_url(&resolved);
-    let resp = client::send(&resolved);
+
+    let cancel = Arc::new(Notify::new());
+    {
+        *state.active_cancel.lock().map_err(err)? = Some(cancel.clone());
+    }
+    let resp = client::send(&resolved, &cancel).await;
+    {
+        *state.active_cancel.lock().map_err(err)? = None;
+    }
 
     {
         let db = state.db.lock().map_err(err)?;
+        // 当前编辑态保留认证信息，下次打开可继续用
         if let Ok(json) = serde_json::to_string(&config) {
             let _ = db.set_setting("last_config", &json);
         }
-        let status = if resp.error.is_none() {
-            Some(resp.status_code)
-        } else {
-            None
-        };
-        let _ = db.add_history(&config, status, Some(resp.duration_ms));
+        // 主动取消不算一次真实请求，不写历史
+        if resp.error.as_deref() != Some(client::CANCELLED) {
+            let status = if resp.error.is_none() {
+                Some(resp.status_code)
+            } else {
+                None
+            };
+            let _ = db.add_history(&without_secrets(&config), status, Some(resp.duration_ms));
+            // 历史只保留最近若干条
+            let _ = db.trim_history(HISTORY_LIMIT);
+        }
     }
 
     let view = to_view(&resp, request_url);
     *state.last_response.lock().map_err(err)? = Some(resp);
     Ok(view)
+}
+
+/// 取消正在进行的请求（放弃未完成的 future，连接随之关闭）
+#[tauri::command]
+pub fn cancel_request(state: State<'_, AppState>) -> Result<(), String> {
+    if let Some(cancel) = state.active_cancel.lock().map_err(err)?.take() {
+        cancel.notify_one();
+    }
+    Ok(())
 }
 
 /// 当前请求中引用、但当前环境未定义的变量
