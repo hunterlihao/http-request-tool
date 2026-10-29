@@ -89,6 +89,8 @@ pub struct AppState {
     pub show_sidebar: bool,
     pub toast: Option<Toast>,
     pub body_raw_view: bool,
+    pub curl_import_open: bool,
+    pub curl_import_text: String,
 }
 
 impl AppState {
@@ -118,6 +120,8 @@ impl AppState {
             show_sidebar: true,
             toast: None,
             body_raw_view: false,
+            curl_import_open: false,
+            curl_import_text: String::new(),
         };
         s.reload_collections();
         s.reload_history();
@@ -303,6 +307,55 @@ impl AppState {
     pub fn apply_config(&mut self, cfg: RequestConfig) {
         self.config = cfg;
         self.response = None;
+    }
+
+    /// 从 cURL 文本导入请求配置
+    pub fn import_curl(&mut self, text: &str) {
+        match crate::http::curl::parse_curl(text) {
+            Ok(cfg) => {
+                self.config = cfg;
+                self.response = None;
+                self.curl_import_open = false;
+                self.curl_import_text.clear();
+                self.toast_info("已导入 cURL".to_string());
+            }
+            Err(e) => self.toast_error(format!("解析失败：{e}")),
+        }
+    }
+
+    /// 当前请求中引用、但当前环境未定义的变量
+    pub fn undefined_vars(&self) -> Vec<String> {
+        let cfg = &self.config;
+        let mut texts: Vec<&str> = vec![
+            &cfg.url,
+            &cfg.body,
+            &cfg.auth.token,
+            &cfg.auth.username,
+            &cfg.auth.password,
+            &cfg.auth.header_value,
+        ];
+        for p in &cfg.params {
+            texts.push(&p.key);
+            texts.push(&p.value);
+        }
+        for h in &cfg.headers {
+            texts.push(&h.key);
+            texts.push(&h.value);
+        }
+        for f in &cfg.form_fields {
+            texts.push(&f.key);
+            texts.push(&f.value);
+        }
+
+        let mut out: Vec<String> = Vec::new();
+        for t in texts {
+            for n in vars::collect_var_names(t) {
+                if !self.env_map.contains_key(&n) && !out.contains(&n) {
+                    out.push(n);
+                }
+            }
+        }
+        out
     }
 
     pub fn save_current_to_collection(&mut self, name: &str) {

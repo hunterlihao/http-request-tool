@@ -76,7 +76,7 @@ fn url_bar(ui: &mut egui::Ui, state: &mut AppState) {
         }
     });
 
-    // 快捷键提示 + 复制 cURL
+    // 快捷键提示 + 变量提示 + cURL
     ui.add_space(4.0);
     ui.horizontal(|ui| {
         widgets::hint(ui, "Ctrl + Enter 快速发送");
@@ -84,25 +84,32 @@ fn url_bar(ui: &mut egui::Ui, state: &mut AppState) {
             ui.add_space(8.0);
             widgets::hint(ui, &format!("· 当前环境：{}", state.current_env));
         }
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if ui
-                .add(
-                    egui::Button::new(
-                        RichText::new("复制 cURL")
-                            .size(11.5)
-                            .color(theme::text_dim()),
-                    )
-                    .fill(Color32::TRANSPARENT)
-                    .frame(false),
-                )
-                .on_hover_text("将当前请求复制为 curl 命令")
-                .clicked()
-            {
-                let curl = state.current_curl();
-                ui.ctx().output_mut(|o| o.copied_text = curl);
-                state.toast_info("已复制 cURL 命令".to_string());
-            }
-        });
+        let missing = state.undefined_vars();
+        if !missing.is_empty() {
+            ui.add_space(8.0);
+            ui.label(
+                RichText::new(format!("· 未定义变量：{}", missing.join("、")))
+                    .size(11.5)
+                    .color(theme::warn()),
+            )
+            .on_hover_text("这些变量在当前环境没有值，发送时会原样保留");
+        }
+        ui.add_space(12.0);
+        if widgets::link_button(ui, "导入 cURL", theme::text_dim())
+            .on_hover_text("粘贴 curl 命令并解析为请求")
+            .clicked()
+        {
+            state.curl_import_open = true;
+        }
+        ui.add_space(4.0);
+        if widgets::link_button(ui, "复制 cURL", theme::text_dim())
+            .on_hover_text("将当前请求复制为 curl 命令")
+            .clicked()
+        {
+            let curl = state.current_curl();
+            ui.ctx().output_mut(|o| o.copied_text = curl);
+            state.toast_info("已复制 cURL 命令".to_string());
+        }
     });
 }
 
@@ -140,23 +147,13 @@ fn tab_bar(ui: &mut egui::Ui, active: &mut RequestTab) {
 fn params_tab(ui: &mut egui::Ui, state: &mut AppState) {
     ui.horizontal(|ui| {
         widgets::hint(ui, "查询参数将拼接到 URL 的 ? 之后");
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if ui
-                .add(
-                    egui::Button::new(
-                        RichText::new("从 URL 导入")
-                            .size(11.5)
-                            .color(theme::accent()),
-                    )
-                    .fill(Color32::TRANSPARENT)
-                    .frame(false),
-                )
-                .on_hover_text("解析 URL 中的查询参数填入下方，并从 URL 中移除")
-                .clicked()
-            {
-                import_params_from_url(state);
-            }
-        });
+        ui.add_space(10.0);
+        if widgets::link_button(ui, "从 URL 导入", theme::accent())
+            .on_hover_text("解析 URL 中的查询参数填入下方，并从 URL 中移除")
+            .clicked()
+        {
+            import_params_from_url(state);
+        }
     });
     ui.add_space(6.0);
     widgets::kv_editor(ui, "params", &mut state.config.params, "参数名", "值");

@@ -61,7 +61,7 @@ fn history_panel(ui: &mut egui::Ui, state: &mut AppState) {
     ui.add_space(4.0);
     ui.horizontal(|ui| {
         widgets::hint(ui, &format!("共 {} 条", state.history.len()));
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+        widgets::right_aligned(ui, 32.0, |ui| {
             if widgets::subtle_button(ui, "清空").clicked() {
                 if state.db.clear_history().is_ok() {
                     state.reload_history();
@@ -281,7 +281,7 @@ fn collections_panel(ui: &mut egui::Ui, state: &mut AppState) {
                     if label.clicked() {
                         to_apply = Some(req.config.clone());
                     }
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    widgets::right_aligned(ui, 24.0, |ui| {
                         if ui
                             .add(
                                 egui::Button::new(RichText::new("✕").size(11.0).color(theme::text_dim()))

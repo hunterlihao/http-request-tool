@@ -1,5 +1,6 @@
 //! 顶层 UI 布局
 
+pub mod json_hl;
 pub mod request_area;
 pub mod response;
 pub mod sidebar;
@@ -68,6 +69,7 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
         });
 
     save_dialog(ctx, state);
+    curl_import_dialog(ctx, state);
     toast(ctx, state);
 }
 
@@ -191,6 +193,52 @@ fn save_dialog(ctx: &egui::Context, state: &mut AppState) {
         });
     if !open {
         state.save_dialog_open = false;
+    }
+}
+
+/// 导入 cURL 对话框
+fn curl_import_dialog(ctx: &egui::Context, state: &mut AppState) {
+    if !state.curl_import_open {
+        return;
+    }
+    let mut open = state.curl_import_open;
+    egui::Window::new("导入 cURL")
+        .open(&mut open)
+        .collapsible(false)
+        .resizable(true)
+        .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
+        .show(ctx, |ui| {
+            ui.set_min_width(580.0);
+            widgets::hint(ui, "粘贴 curl 命令，自动解析为请求配置");
+            ui.add_space(8.0);
+            egui::ScrollArea::vertical()
+                .id_salt("curl_import_scroll")
+                .max_height(220.0)
+                .show(ui, |ui| {
+                    ui.add(
+                        egui::TextEdit::multiline(&mut state.curl_import_text)
+                            .desired_rows(7)
+                            .desired_width(f32::INFINITY)
+                            .font(egui::TextStyle::Monospace)
+                            .hint_text(
+                                "curl -X POST 'https://api.example.com' -H 'Content-Type: application/json' -d '{\"a\":1}'",
+                            ),
+                    );
+                });
+            ui.add_space(12.0);
+            ui.horizontal(|ui| {
+                if widgets::accent_button(ui, "导 入", true).clicked() {
+                    let text = state.curl_import_text.clone();
+                    state.import_curl(&text);
+                }
+                if widgets::subtle_button(ui, "取消").clicked() {
+                    state.curl_import_open = false;
+                    state.curl_import_text.clear();
+                }
+            });
+        });
+    if !open {
+        state.curl_import_open = false;
     }
 }
 

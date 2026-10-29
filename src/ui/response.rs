@@ -36,7 +36,7 @@ fn status_bar(ui: &mut egui::Ui, state: &mut AppState, resp: &ResponseData) {
             widgets::badge(ui, &resp.http_version, theme::redirect());
         }
 
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+        widgets::right_aligned(ui, 34.0, |ui| {
             if widgets::subtle_button(ui, "复制").clicked() {
                 let text = if state.body_raw_view {
                     resp.body_text()
@@ -171,12 +171,16 @@ fn body_view(ui: &mut egui::Ui, state: &mut AppState, resp: &ResponseData) {
         resp.formatted_body()
     };
 
+    let use_hl = !truncated && !state.body_raw_view && is_json && text.len() < 200_000;
+
     egui::ScrollArea::both()
         .id_salt("resp_body_scroll")
         .auto_shrink([false, false])
         .show(ui, |ui| {
             if text.trim().is_empty() {
                 widgets::hint(ui, "（空响应体）");
+            } else if use_hl {
+                ui.add(egui::Label::new(crate::ui::json_hl::json_job(&text)));
             } else {
                 let mut display = text;
                 ui.add(

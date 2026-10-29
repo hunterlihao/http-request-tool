@@ -130,6 +130,28 @@ pub fn select_popup(
     picked
 }
 
+/// 在行内靠右放置内容（可靠地占满剩余宽度）
+pub fn right_aligned(ui: &mut egui::Ui, height: f32, add: impl FnOnce(&mut egui::Ui)) {
+    let w = ui.available_width();
+    if w <= 1.0 {
+        return;
+    }
+    ui.allocate_ui_with_layout(
+        egui::vec2(w, height),
+        egui::Layout::right_to_left(egui::Align::Center),
+        add,
+    );
+}
+
+/// 裸文字链接按钮
+pub fn link_button(ui: &mut egui::Ui, text: &str, color: Color32) -> Response {
+    ui.add(
+        egui::Button::new(RichText::new(text).size(11.5).color(color))
+            .fill(Color32::TRANSPARENT)
+            .frame(false),
+    )
+}
+
 /// 键值对编辑器（Params / Headers / Form 共用）
 pub fn kv_editor(
     ui: &mut egui::Ui,
