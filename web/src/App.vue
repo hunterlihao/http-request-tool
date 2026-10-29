@@ -38,24 +38,6 @@ onBeforeUnmount(() => {
 <template>
   <div class="app-shell">
     <header class="app-header">
-      <div class="brand">
-        <svg width="22" height="22" viewBox="0 0 64 64" aria-hidden="true">
-          <defs>
-            <linearGradient id="brandGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#FB923C" />
-              <stop offset="100%" stop-color="#C23708" />
-            </linearGradient>
-          </defs>
-          <rect x="1" y="1" width="62" height="62" rx="16" fill="url(#brandGrad)" />
-          <polygon
-            points="37.4,8.3 17.9,35.8 29.8,35.8 25.9,56 46.1,27.8 33.9,27.8"
-            fill="#ffffff"
-          />
-        </svg>
-        <span class="brand-name">HTTP 请求工具</span>
-        <el-tag size="small" type="info" effect="plain">便携版</el-tag>
-      </div>
-
       <div class="header-actions">
         <el-select
           :model-value="state.currentEnv"

@@ -58,28 +58,14 @@ body {
 }
 
 .app-header {
-  flex: 0 0 52px;
+  flex: 0 0 44px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
-  padding: 0 16px;
+  padding: 0 12px;
   background: var(--app-panel);
   border-bottom: 1px solid var(--el-border-color);
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.brand-name {
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0.1px;
-  white-space: nowrap;
 }
 
 .header-actions {
@@ -501,7 +487,7 @@ body {
   .app-header {
     padding: 0 10px;
   }
-  .brand-name {
-    font-size: 13px;
+  .env-select {
+    width: 120px;
   }
 }
