@@ -378,6 +378,25 @@ pub fn saved_delete(state: State<'_, AppState>, id: i64) -> Result<(), String> {
     db.delete_saved_request(id).map_err(err)
 }
 
+/// 覆盖已保存请求（改名 + 更新内容）
+#[tauri::command]
+pub fn saved_update(
+    state: State<'_, AppState>,
+    id: i64,
+    name: String,
+    config: RequestConfig,
+) -> Result<(), String> {
+    let db = state.db.lock().map_err(err)?;
+    db.update_saved_request(id, &name, &config).map_err(err)
+}
+
+/// 按新顺序写入集合内请求的排序
+#[tauri::command]
+pub fn saved_reorder(state: State<'_, AppState>, ids: Vec<i64>) -> Result<(), String> {
+    let db = state.db.lock().map_err(err)?;
+    db.reorder_saved_requests(&ids).map_err(err)
+}
+
 // ---------- 环境变量 ----------
 
 #[tauri::command]

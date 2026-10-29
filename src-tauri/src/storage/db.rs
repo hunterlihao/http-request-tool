@@ -155,6 +155,31 @@ impl Db {
         Ok(())
     }
 
+    /// 覆盖已保存的请求（改名或更新内容）
+    pub fn update_saved_request(&self, id: i64, name: &str, config: &RequestConfig) -> Result<()> {
+        let config_json = serde_json::to_string(config).context("序列化请求失败")?;
+        self.conn
+            .execute(
+                "UPDATE saved_requests SET name=?2, config=?3 WHERE id=?1",
+                params![id, name, config_json],
+            )
+            .context("更新请求失败")?;
+        Ok(())
+    }
+
+    /// 按给定顺序写入 sort，实现拖拽排序
+    pub fn reorder_saved_requests(&self, ids: &[i64]) -> Result<()> {
+        for (index, id) in ids.iter().enumerate() {
+            self.conn
+                .execute(
+                    "UPDATE saved_requests SET sort=?2 WHERE id=?1",
+                    params![id, index as i64],
+                )
+                .context("更新排序失败")?;
+        }
+        Ok(())
+    }
+
     // ---------- 历史 ----------
 
     pub fn add_history(
@@ -403,6 +428,28 @@ mod tests {
         assert_eq!(list[0].name, "请求1");
         assert_eq!(list[0].config.method, Method::Post);
         assert_eq!(list[0].config.url, cfg.url);
+        drop(db);
+        let _ = std::fs::remove_file(&p);
+        let _ = std::fs::remove_file(format!("{}-wal", p.display()));
+        let _ = std::fs::remove_file(format!("{}-shm", p.display()));
+    }
+
+    #[test]
+    fn test_saved_update_and_reorder() {
+        let (db, p) = test_db();
+        let cfg = sample_config();
+        let col_id = db.create_collection("B", 0).unwrap();
+        let first = db.save_request(col_id, "a", &cfg).unwrap();
+        let second = db.save_request(col_id, "b", &cfg).unwrap();
+
+        db.update_saved_request(first, "a2", &cfg).unwrap();
+        let list = db.list_saved_requests(col_id).unwrap();
+        assert_eq!(list[0].name, "a2");
+
+        db.reorder_saved_requests(&[second, first]).unwrap();
+        let list = db.list_saved_requests(col_id).unwrap();
+        assert_eq!(list[0].id, second, "拖拽后顺序应生效");
+        assert_eq!(list[1].id, first);
         drop(db);
         let _ = std::fs::remove_file(&p);
         let _ = std::fs::remove_file(format!("{}-wal", p.display()));

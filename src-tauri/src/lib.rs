@@ -60,6 +60,8 @@ pub fn run() {
             commands::saved_list,
             commands::saved_save,
             commands::saved_delete,
+            commands::saved_update,
+            commands::saved_reorder,
             commands::env_names,
             commands::env_vars,
             commands::env_set,
