@@ -3,7 +3,7 @@
 use eframe::egui::{self, Color32, RichText, Rounding, TextEdit};
 
 use crate::app::{AppState, RequestTab};
-use crate::model::request::{AuthType, BodyType, Method};
+use crate::model::request::{AuthType, BodyType, KVPair, Method};
 use crate::theme;
 use crate::ui::widgets;
 
@@ -76,7 +76,7 @@ fn url_bar(ui: &mut egui::Ui, state: &mut AppState) {
         }
     });
 
-    // 快捷键提示
+    // 快捷键提示 + 复制 cURL
     ui.add_space(4.0);
     ui.horizontal(|ui| {
         widgets::hint(ui, "Ctrl + Enter 快速发送");
@@ -84,6 +84,25 @@ fn url_bar(ui: &mut egui::Ui, state: &mut AppState) {
             ui.add_space(8.0);
             widgets::hint(ui, &format!("· 当前环境：{}", state.current_env));
         }
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            if ui
+                .add(
+                    egui::Button::new(
+                        RichText::new("复制 cURL")
+                            .size(11.5)
+                            .color(theme::text_dim()),
+                    )
+                    .fill(Color32::TRANSPARENT)
+                    .frame(false),
+                )
+                .on_hover_text("将当前请求复制为 curl 命令")
+                .clicked()
+            {
+                let curl = state.current_curl();
+                ui.ctx().output_mut(|o| o.copied_text = curl);
+                state.toast_info("已复制 cURL 命令".to_string());
+            }
+        });
     });
 }
 
@@ -119,9 +138,54 @@ fn tab_bar(ui: &mut egui::Ui, active: &mut RequestTab) {
 }
 
 fn params_tab(ui: &mut egui::Ui, state: &mut AppState) {
-    widgets::hint(ui, "查询参数将拼接到 URL 的 ? 之后");
+    ui.horizontal(|ui| {
+        widgets::hint(ui, "查询参数将拼接到 URL 的 ? 之后");
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            if ui
+                .add(
+                    egui::Button::new(
+                        RichText::new("从 URL 导入")
+                            .size(11.5)
+                            .color(theme::accent()),
+                    )
+                    .fill(Color32::TRANSPARENT)
+                    .frame(false),
+                )
+                .on_hover_text("解析 URL 中的查询参数填入下方，并从 URL 中移除")
+                .clicked()
+            {
+                import_params_from_url(state);
+            }
+        });
+    });
     ui.add_space(6.0);
     widgets::kv_editor(ui, "params", &mut state.config.params, "参数名", "值");
+}
+
+/// 解析 URL 中的 query，导入到 params 并从 URL 移除
+fn import_params_from_url(state: &mut AppState) {
+    let Ok(mut parsed) = url::Url::parse(state.config.url.trim()) else {
+        state.toast_error("URL 无法解析".to_string());
+        return;
+    };
+    let pairs: Vec<(String, String)> = parsed
+        .query_pairs()
+        .map(|(k, v)| (k.into_owned(), v.into_owned()))
+        .collect();
+    if pairs.is_empty() {
+        state.toast_info("URL 中没有查询参数".to_string());
+        return;
+    }
+    for (k, v) in pairs {
+        state.config.params.push(KVPair {
+            key: k,
+            value: v,
+            enabled: true,
+        });
+    }
+    parsed.set_query(None);
+    state.config.url = parsed.to_string();
+    state.toast_info("已从 URL 导入查询参数".to_string());
 }
 
 fn headers_tab(ui: &mut egui::Ui, state: &mut AppState) {
@@ -305,7 +369,7 @@ fn advanced_tab(ui: &mut egui::Ui, state: &mut AppState) {
         .show(ui, |ui| {
             ui.label("超时（秒）");
             ui.horizontal(|ui| {
-                ui.add(egui::DragValue::new(&mut state.config.timeout_secs).range(1..=600).speed(1));
+                ui.add(egui::DragValue::new(&mut state.config.timeout_secs).range(0..=600).speed(1));
                 widgets::hint(ui, "0 表示默认 30 秒");
             });
             ui.end_row();

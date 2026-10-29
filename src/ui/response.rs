@@ -46,6 +46,9 @@ fn status_bar(ui: &mut egui::Ui, state: &mut AppState, resp: &ResponseData) {
                 ui.ctx().output_mut(|o| o.copied_text = text);
                 state.toast_info("已复制响应体".to_string());
             }
+            if widgets::subtle_button(ui, "下载").clicked() {
+                download_body(state, resp);
+            }
 
             // Body / Headers 切换
             let body_sel = state.response_tab == ResponseTab::Body;
@@ -99,9 +102,14 @@ fn status_bar(ui: &mut egui::Ui, state: &mut AppState, resp: &ResponseData) {
     }
 }
 
+/// 响应体展示上限（超过则截断，避免文本渲染卡顿）
+const MAX_DISPLAY: usize = 1024 * 1024;
+
 fn body_view(ui: &mut egui::Ui, state: &mut AppState, resp: &ResponseData) {
-    // 原始 / 格式化切换
-    let is_json = serde_json::from_str::<serde_json::Value>(&resp.body_text()).is_ok();
+    let truncated = resp.body.len() > MAX_DISPLAY;
+
+    // 原始 / 格式化切换（截断时不格式化）
+    let is_json = !truncated && serde_json::from_str::<serde_json::Value>(&resp.body_text()).is_ok();
     if is_json {
         ui.horizontal(|ui| {
             let fmt = !state.body_raw_view;
@@ -135,7 +143,29 @@ fn body_view(ui: &mut egui::Ui, state: &mut AppState, resp: &ResponseData) {
         ui.add_space(4.0);
     }
 
-    let text = if state.body_raw_view {
+    if truncated {
+        ui.horizontal(|ui| {
+            widgets::badge(ui, "内容过大", theme::warn());
+            widgets::hint(
+                ui,
+                &format!(
+                    "共 {}，仅显示前 {}；完整内容请点「下载」",
+                    human_size(resp.body.len()),
+                    human_size(MAX_DISPLAY)
+                ),
+            );
+        });
+        ui.add_space(4.0);
+    }
+
+    let text = if truncated {
+        let mut end = MAX_DISPLAY.min(resp.body.len());
+        // 回退到 UTF-8 字符边界，避免截断后出现乱码
+        while end > 0 && end < resp.body.len() && (resp.body[end] & 0xC0) == 0x80 {
+            end -= 1;
+        }
+        String::from_utf8_lossy(&resp.body[..end]).to_string()
+    } else if state.body_raw_view {
         resp.body_text()
     } else {
         resp.formatted_body()
@@ -148,7 +178,6 @@ fn body_view(ui: &mut egui::Ui, state: &mut AppState, resp: &ResponseData) {
             if text.trim().is_empty() {
                 widgets::hint(ui, "（空响应体）");
             } else {
-                // 只读的多行文本，等宽字体
                 let mut display = text;
                 ui.add(
                     egui::TextEdit::multiline(&mut display)
@@ -158,6 +187,48 @@ fn body_view(ui: &mut egui::Ui, state: &mut AppState, resp: &ResponseData) {
                 );
             }
         });
+}
+
+/// 把响应体保存到文件
+fn download_body(state: &mut AppState, resp: &ResponseData) {
+    let name = guess_filename(resp);
+    let Some(path) = rfd::FileDialog::new().set_file_name(&name).save_file() else {
+        return;
+    };
+    match std::fs::write(&path, &resp.body) {
+        Ok(_) => state.toast_info(format!("已保存到 {}", path.display())),
+        Err(e) => state.toast_error(format!("保存失败：{e}")),
+    }
+}
+
+/// 依据 Content-Type 推断下载文件名后缀
+fn guess_filename(resp: &ResponseData) -> String {
+    let ct = resp
+        .headers
+        .iter()
+        .find(|(k, _)| k.eq_ignore_ascii_case("content-type"))
+        .map(|(_, v)| v.to_lowercase())
+        .unwrap_or_default();
+    let ext = if ct.contains("json") {
+        "json"
+    } else if ct.contains("html") {
+        "html"
+    } else if ct.contains("xml") {
+        "xml"
+    } else if ct.contains("javascript") {
+        "js"
+    } else if ct.contains("image/png") {
+        "png"
+    } else if ct.contains("image/jpeg") {
+        "jpg"
+    } else if ct.contains("image/svg") {
+        "svg"
+    } else if ct.contains("pdf") {
+        "pdf"
+    } else {
+        "txt"
+    };
+    format!("response.{ext}")
 }
 
 fn headers_view(ui: &mut egui::Ui, resp: &ResponseData) {

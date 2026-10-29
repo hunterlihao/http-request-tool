@@ -73,6 +73,8 @@ fn history_panel(ui: &mut egui::Ui, state: &mut AppState) {
     ui.add_space(4.0);
 
     let search = state.history_search.to_lowercase();
+    // 按 方法+URL 去重，保留最新一条
+    let mut seen: std::collections::HashSet<(String, String)> = std::collections::HashSet::new();
     let filtered: Vec<_> = state
         .history
         .iter()
@@ -80,6 +82,9 @@ fn history_panel(ui: &mut egui::Ui, state: &mut AppState) {
             search.is_empty()
                 || h.config.url.to_lowercase().contains(&search)
                 || h.config.method.as_str().to_lowercase().contains(&search)
+        })
+        .filter(|h| {
+            seen.insert((h.config.method.as_str().to_string(), h.config.url.clone()))
         })
         .cloned()
         .collect();

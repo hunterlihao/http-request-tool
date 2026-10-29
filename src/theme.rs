@@ -94,6 +94,9 @@ pub fn ok() -> Color32 {
 pub fn redirect() -> Color32 {
     pal().redirect
 }
+pub fn warn() -> Color32 {
+    pal().warn
+}
 pub fn error() -> Color32 {
     pal().error
 }

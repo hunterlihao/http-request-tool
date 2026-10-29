@@ -123,7 +123,17 @@ impl AppState {
         s.reload_history();
         s.reload_envs();
         s.load_env("global");
+        s.restore_last_config();
         s
+    }
+
+    /// 恢复上次编辑的请求
+    fn restore_last_config(&mut self) {
+        if let Ok(Some(json)) = self.db.get_setting("last_config") {
+            if let Ok(cfg) = serde_json::from_str::<RequestConfig>(&json) {
+                self.config = cfg;
+            }
+        }
     }
 
     // ---------- 数据刷新 ----------
@@ -207,12 +217,9 @@ impl AppState {
 
     // ---------- 发送请求 ----------
 
-    pub fn send_request(&mut self, ctx: &egui::Context) {
-        if self.sending {
-            return;
-        }
+    /// 应用环境变量替换后的最终请求配置
+    fn resolved_config(&self) -> RequestConfig {
         let mut cfg = self.config.clone();
-        // 变量替换（作用于 url / params / headers / body / 认证字段）
         let vars = &self.env_map;
         cfg.url = vars::replace_vars(&cfg.url, vars);
         for p in &mut cfg.params {
@@ -232,6 +239,23 @@ impl AppState {
         cfg.auth.password = vars::replace_vars(&cfg.auth.password, vars);
         cfg.auth.token = vars::replace_vars(&cfg.auth.token, vars);
         cfg.auth.header_value = vars::replace_vars(&cfg.auth.header_value, vars);
+        cfg
+    }
+
+    /// 当前请求对应的 cURL 命令
+    pub fn current_curl(&self) -> String {
+        crate::http::curl::to_curl(&self.resolved_config())
+    }
+
+    pub fn send_request(&mut self, ctx: &egui::Context) {
+        if self.sending {
+            return;
+        }
+        let cfg = self.resolved_config();
+        // 记住上次编辑的请求
+        if let Ok(json) = serde_json::to_string(&self.config) {
+            let _ = self.db.set_setting("last_config", &json);
+        }
 
         let (tx, rx) = std::sync::mpsc::channel();
         self.pending = Some(rx);

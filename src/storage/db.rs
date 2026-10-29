@@ -54,6 +54,11 @@ impl Db {
 
             CREATE INDEX IF NOT EXISTS idx_saved_requests_collection ON saved_requests(collection_id);
             CREATE INDEX IF NOT EXISTS idx_history_created ON history(created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            );
             "#,
         )
         .context("初始化数据库表失败")?;
@@ -264,6 +269,32 @@ impl Db {
             .execute("DELETE FROM environments WHERE env_name=?1", params![env_name])
             .context("删除环境失败")?;
         Ok(())
+    }
+
+    // ---------- 设置 ----------
+
+    pub fn set_setting(&self, key: &str, value: &str) -> Result<()> {
+        self.conn
+            .execute(
+                "INSERT INTO settings (key, value) VALUES (?1, ?2)
+                 ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                params![key, value],
+            )
+            .context("保存设置失败")?;
+        Ok(())
+    }
+
+    pub fn get_setting(&self, key: &str) -> Result<Option<String>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT value FROM settings WHERE key=?1")
+            .context("读取设置失败")?;
+        let mut rows = stmt.query(params![key]).context("读取设置失败")?;
+        if let Some(row) = rows.next().context("读取设置失败")? {
+            Ok(Some(row.get(0).context("读取设置失败")?))
+        } else {
+            Ok(None)
+        }
     }
 
     // ---------- 导入 / 导出 ----------
