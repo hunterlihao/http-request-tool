@@ -536,6 +536,24 @@ body {
   background: var(--el-fill-color-light);
 }
 
+/* 当前编辑内容来自这条已保存请求 */
+.list-row.active {
+  background: var(--el-color-primary-light-9);
+}
+
+.drag-handle {
+  flex: 0 0 auto;
+  color: var(--el-text-color-placeholder);
+  font-size: 11px;
+  cursor: grab;
+  user-select: none;
+}
+
+.rename-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .list-row .method {
   font-family: var(--app-mono);
   font-size: 10.5px;

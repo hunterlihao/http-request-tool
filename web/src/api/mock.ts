@@ -174,6 +174,25 @@ export async function handle(cmd: string, args: Record<string, unknown> = {}): P
       db.saved = db.saved.filter((s) => s.id !== args.id)
       persist()
       return null
+    case 'saved_update': {
+      const item = db.saved.find((s) => s.id === args.id)
+      if (item) {
+        item.name = String(args.name)
+        item.config = args.config as RequestConfig
+        persist()
+      }
+      return null
+    }
+    case 'saved_reorder': {
+      const ids = args.ids as number[]
+      const rest = db.saved.filter((s) => !ids.includes(s.id))
+      const ordered = ids
+        .map((id) => db.saved.find((s) => s.id === id))
+        .filter((s): s is SavedRequest => !!s)
+      db.saved = [...ordered, ...rest]
+      persist()
+      return null
+    }
     case 'env_names':
       return Object.keys(db.envs).length ? Object.keys(db.envs) : ['global']
     case 'env_vars':

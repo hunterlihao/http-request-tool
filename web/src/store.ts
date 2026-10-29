@@ -43,6 +43,8 @@ export const state = reactive({
   collections: [] as Collection[],
   currentCollectionId: null as number | null,
   savedRequests: [] as SavedRequest[],
+  /** 当前编辑内容来自哪个已保存请求（用于覆盖保存 / 改名） */
+  currentSavedId: null as number | null,
   collectionSearch: '',
 
   history: [] as HistoryItem[],
@@ -244,7 +246,7 @@ export async function deleteCollection(id: number) {
   }
 }
 
-export async function saveCurrentRequest(name: string) {
+export async function saveCurrentRequest(name: string, overwrite = false) {
   const target = state.config.url.trim() || '未命名请求'
   const finalName = name.trim() || target
   if (state.currentCollectionId == null) {
@@ -252,13 +254,55 @@ export async function saveCurrentRequest(name: string) {
     return false
   }
   try {
-    await api.savedSave(state.currentCollectionId, finalName, clone(state.config))
+    if (overwrite && state.currentSavedId != null) {
+      await api.savedUpdate(state.currentSavedId, finalName, clone(state.config))
+      await refreshSaved()
+      toast(`已覆盖「${finalName}」`)
+      return true
+    }
+    const id = await api.savedSave(state.currentCollectionId, finalName, clone(state.config))
+    state.currentSavedId = id
     await refreshSaved()
     toast(`已保存「${finalName}」`)
     return true
   } catch (e) {
     toast(`保存失败：${String(e)}`, { type: 'error' })
     return false
+  }
+}
+
+/** 打开集合里的已保存请求（记住来源，便于覆盖保存） */
+export function openSavedRequest(req: SavedRequest) {
+  applyConfig(req.config)
+  state.currentSavedId = req.id
+}
+
+/** 给已保存请求改名 */
+export async function renameSavedRequest(id: number, name: string) {
+  const finalName = name.trim()
+  const item = state.savedRequests.find((r) => r.id === id)
+  if (!item || !finalName) return
+  try {
+    await api.savedUpdate(id, finalName, item.config)
+    await refreshSaved()
+    toast('已重命名')
+  } catch (e) {
+    toast(`重命名失败：${String(e)}`, { type: 'error' })
+  }
+}
+
+/** 拖拽排序：先改本地顺序，再落库 */
+export async function moveSavedRequest(from: number, to: number) {
+  if (from === to || from < 0 || to < 0) return
+  const list = [...state.savedRequests]
+  const [moved] = list.splice(from, 1)
+  if (!moved) return
+  list.splice(to, 0, moved)
+  state.savedRequests = list
+  try {
+    await api.savedReorder(list.map((r) => r.id))
+  } catch (e) {
+    toast(`保存排序失败：${String(e)}`, { type: 'error' })
   }
 }
 
@@ -269,13 +313,15 @@ export function openSaveDialog() {
     toast('请先在左侧选择一个集合', { type: 'warning' })
     return
   }
-  state.saveName = state.config.url || '未命名请求'
+  // 已在编辑某条已保存请求时，默认沿用它的名字（覆盖保存）
+  const saved = state.savedRequests.find((r) => r.id === state.currentSavedId)
+  state.saveName = saved?.name ?? (state.config.url || '未命名请求')
   state.saveDialogOpen = true
 }
 
 /** 提交保存对话框 */
-export async function submitSaveDialog() {
-  const ok = await saveCurrentRequest(state.saveName)
+export async function submitSaveDialog(overwrite = false) {
+  const ok = await saveCurrentRequest(state.saveName, overwrite)
   if (ok) {
     state.saveDialogOpen = false
     state.saveName = ''
@@ -352,6 +398,8 @@ export async function deleteHistory(id: number) {
 export function applyConfig(cfg: RequestConfig) {
   state.config = normalizeConfig(clone(cfg))
   state.response = null
+  // 从历史 / cURL 来的内容不再对应某条已保存请求
+  state.currentSavedId = null
 }
 
 export async function sendRequest() {

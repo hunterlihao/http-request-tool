@@ -55,6 +55,9 @@ export const api = {
   savedList: (collectionId: number) => call<SavedRequest[]>('saved_list', { collectionId }),
   savedSave: (collectionId: number, name: string, config: RequestConfig) =>
     call<number>('saved_save', { collectionId, name, config }),
+  savedUpdate: (id: number, name: string, config: RequestConfig) =>
+    call<void>('saved_update', { id, name, config }),
+  savedReorder: (ids: number[]) => call<void>('saved_reorder', { ids }),
   savedDelete: (id: number) => call<void>('saved_delete', { id }),
 
   // 环境

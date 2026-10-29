@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Delete, FolderAdd, Search } from '@element-plus/icons-vue'
+import { Delete, Edit, FolderAdd, Search } from '@element-plus/icons-vue'
 import { computed, ref } from 'vue'
 
 import { METHOD_COLOR, METHOD_LABEL, statusColor, type HistoryItem } from '@/api/types'
@@ -15,9 +15,12 @@ import {
   exportCollection,
   importCollection,
   loadEnv,
+  moveSavedRequest,
   openSaveDialog,
+  openSavedRequest,
   persistEnvVar,
   removeEnvVar,
+  renameSavedRequest,
   selectCollection,
   state,
   submitSaveDialog,
@@ -25,6 +28,36 @@ import {
 
 const newCollection = ref('')
 const newEnv = ref('')
+
+/** 已保存请求的行内改名 */
+const editingId = ref<number | null>(null)
+const editingName = ref('')
+/** 拖拽排序的源行 */
+const dragId = ref<number | null>(null)
+
+function beginRename(id: number, name: string) {
+  editingId.value = id
+  editingName.value = name
+}
+
+async function commitRename(id: number) {
+  if (editingId.value !== id) return
+  const name = editingName.value
+  editingId.value = null
+  await renameSavedRequest(id, name)
+}
+
+function startDragSaved(id: number) {
+  dragId.value = id
+}
+
+function dropSaved(targetId: number) {
+  if (dragId.value == null || dragId.value === targetId) return
+  const from = state.savedRequests.findIndex((r) => r.id === dragId.value)
+  const to = state.savedRequests.findIndex((r) => r.id === targetId)
+  dragId.value = null
+  moveSavedRequest(from, to)
+}
 
 /** 历史按 方法 + URL 去重，保留最新一条 */
 const filteredHistory = computed<HistoryItem[]>(() => {
@@ -211,14 +244,37 @@ function addEnvVar() {
               v-for="req in filteredSaved"
               :key="req.id"
               class="list-row"
+              :class="{ active: state.currentSavedId === req.id }"
               :title="req.config.url"
-              @click="applyConfig(req.config)"
+              :draggable="!state.collectionSearch"
+              @click="openSavedRequest(req)"
+              @dragstart="startDragSaved(req.id)"
+              @dragover.prevent
+              @drop="dropSaved(req.id)"
+              @dragend="dragId = null"
             >
+              <span v-if="!state.collectionSearch" class="drag-handle" title="拖拽排序">⠿</span>
               <span class="method" :style="{ color: METHOD_COLOR[req.config.method] }">
                 {{ METHOD_LABEL[req.config.method] }}
               </span>
-              <span class="text" :title="req.name">{{ req.name }}</span>
+              <el-input
+                v-if="editingId === req.id"
+                v-model="editingName"
+                size="small"
+                class="rename-input"
+                @click.stop
+                @keyup.enter="commitRename(req.id)"
+                @blur="commitRename(req.id)"
+              />
+              <span v-else class="text" :title="req.name">{{ req.name }}</span>
               <span class="row-actions">
+                <el-button
+                  text
+                  size="small"
+                  :icon="Edit"
+                  title="重命名"
+                  @click.stop="beginRename(req.id, req.name)"
+                />
                 <el-button
                   text
                   size="small"
@@ -309,11 +365,14 @@ function addEnvVar() {
         v-model="state.saveName"
         placeholder="未命名请求"
         style="margin-top: 10px"
-        @keyup.enter="submitSaveDialog"
+        @keyup.enter="submitSaveDialog(false)"
       />
       <template #footer>
         <el-button @click="state.saveDialogOpen = false">取消</el-button>
-        <el-button type="primary" @click="submitSaveDialog">保存</el-button>
+        <el-button v-if="state.currentSavedId != null" @click="submitSaveDialog(true)">
+          覆盖原请求
+        </el-button>
+        <el-button type="primary" @click="submitSaveDialog(false)">另存为新请求</el-button>
       </template>
     </el-dialog>
   </div>
