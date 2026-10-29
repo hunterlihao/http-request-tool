@@ -61,7 +61,7 @@ fn status_bar(ui: &mut egui::Ui, state: &mut AppState, resp: &ResponseData) {
                     } else {
                         Color32::TRANSPARENT
                     })
-                    .rounding(Rounding::same(6.0))
+                    .rounding(Rounding::same(8.0))
                     .frame(false),
                 )
                 .clicked()
@@ -81,7 +81,7 @@ fn status_bar(ui: &mut egui::Ui, state: &mut AppState, resp: &ResponseData) {
                     } else {
                         Color32::TRANSPARENT
                     })
-                    .rounding(Rounding::same(6.0))
+                    .rounding(Rounding::same(8.0))
                     .frame(false),
                 )
                 .clicked()
@@ -111,7 +111,7 @@ fn body_view(ui: &mut egui::Ui, state: &mut AppState, resp: &ResponseData) {
                         RichText::new("格式化").size(12.0).color(if fmt { theme::accent() } else { theme::text_dim() }),
                     )
                     .fill(if fmt { theme::accent().gamma_multiply(0.12) } else { Color32::TRANSPARENT })
-                    .rounding(Rounding::same(6.0))
+                    .rounding(Rounding::same(8.0))
                     .frame(false),
                 )
                 .clicked()
@@ -124,7 +124,7 @@ fn body_view(ui: &mut egui::Ui, state: &mut AppState, resp: &ResponseData) {
                         RichText::new("原始").size(12.0).color(if !fmt { theme::accent() } else { theme::text_dim() }),
                     )
                     .fill(if !fmt { theme::accent().gamma_multiply(0.12) } else { Color32::TRANSPARENT })
-                    .rounding(Rounding::same(6.0))
+                    .rounding(Rounding::same(8.0))
                     .frame(false),
                 )
                 .clicked()
@@ -154,8 +154,7 @@ fn body_view(ui: &mut egui::Ui, state: &mut AppState, resp: &ResponseData) {
                     egui::TextEdit::multiline(&mut display)
                         .font(egui::TextStyle::Monospace)
                         .desired_width(f32::INFINITY)
-                        .interactive(false)
-                        .frame(false),
+                        .interactive(false),
                 );
             }
         });

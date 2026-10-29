@@ -5,7 +5,7 @@ pub mod response;
 pub mod sidebar;
 pub mod widgets;
 
-use eframe::egui::{self, Align2, Color32, RichText, Rounding};
+use eframe::egui::{self, Align2, Color32, RichText, Rounding, Stroke};
 
 use crate::app::{AppState, ToastKind};
 use crate::theme;
@@ -22,12 +22,12 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
     if state.show_sidebar {
         egui::SidePanel::left("sidebar")
             .resizable(true)
-            .default_width(310.0)
-            .width_range(240.0..=460.0)
+            .default_width(320.0)
+            .width_range(250.0..=480.0)
             .frame(
                 egui::Frame::none()
                     .fill(theme::panel())
-                    .inner_margin(egui::Margin::symmetric(14.0, 10.0)),
+                    .inner_margin(egui::Margin::symmetric(16.0, 14.0)),
             )
             .show(ctx, |ui| {
                 sidebar::draw(ui, state);
@@ -38,28 +38,33 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
         .frame(
             egui::Frame::none()
                 .fill(theme::canvas())
-                .inner_margin(egui::Margin::symmetric(14.0, 12.0)),
+                .inner_margin(egui::Margin::same(14.0)),
         )
         .show(ctx, |ui| {
             let total_h = ui.available_height();
-            let max_req = (total_h - 180.0).max(240.0);
-            let req_h = (total_h * 0.52).clamp(240.0, max_req);
+            let gap = 12.0;
+            let max_req = (total_h - 200.0).max(240.0);
+            let req_h = ((total_h - gap) * 0.52).clamp(240.0, max_req);
 
-            // 请求编辑区（固定高度）
+            // 请求卡片（固定高度）
             ui.allocate_ui_with_layout(
                 egui::vec2(ui.available_width(), req_h),
                 egui::Layout::top_down(egui::Align::Min),
                 |ui| {
-                    request_area::draw(ui, state);
+                    theme::card_frame().show(ui, |ui| {
+                        ui.set_min_height(ui.available_height());
+                        request_area::draw(ui, state);
+                    });
                 },
             );
 
-            ui.add_space(8.0);
-            ui.separator();
-            ui.add_space(8.0);
+            ui.add_space(gap);
 
-            // 响应区（占剩余空间）
-            response::draw(ui, state);
+            // 响应卡片（占满剩余）
+            theme::card_frame().show(ui, |ui| {
+                ui.set_min_height(ui.available_height());
+                response::draw(ui, state);
+            });
         });
 
     save_dialog(ctx, state);
@@ -72,39 +77,45 @@ fn top_bar(ctx: &egui::Context, state: &mut AppState) {
         .frame(
             egui::Frame::none()
                 .fill(theme::panel())
-                .inner_margin(egui::Margin::symmetric(16.0, 10.0)),
+                .inner_margin(egui::Margin::symmetric(18.0, 12.0)),
         )
         .show(ctx, |ui| {
             ui.horizontal(|ui| {
-                // logo 标记
-                let (rect, _) = ui.allocate_exact_size(egui::vec2(12.0, 12.0), egui::Sense::hover());
+                // 品牌标记
+                let (rect, _) =
+                    ui.allocate_exact_size(egui::vec2(14.0, 14.0), egui::Sense::hover());
                 ui.painter()
-                    .rect_filled(rect, Rounding::same(3.0), theme::accent());
+                    .rect_filled(rect, Rounding::same(4.0), theme::accent());
 
-                ui.add_space(4.0);
+                ui.add_space(8.0);
                 ui.label(
                     RichText::new("HTTP 请求工具")
                         .size(15.0)
                         .strong()
                         .color(theme::text()),
                 );
-                widgets::hint(ui, "· 便携版");
+                ui.add_space(2.0);
+                ui.label(
+                    RichText::new("便携调试台")
+                        .size(11.5)
+                        .color(theme::text_muted()),
+                );
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     // 侧栏开关
-                    let toggle = if state.show_sidebar { "◀ 收起" } else { "▶ 侧栏" };
+                    let toggle = if state.show_sidebar { "收起侧栏" } else { "展开侧栏" };
                     if widgets::subtle_button(ui, toggle).clicked() {
                         state.show_sidebar = !state.show_sidebar;
                     }
 
-                    ui.add_space(8.0);
+                    ui.add_space(10.0);
 
                     // 环境快捷选择
                     egui::ComboBox::from_id_salt("topbar_env")
-                        .width(150.0)
+                        .width(168.0)
                         .selected_text(
-                            RichText::new(format!("环境：{}", state.current_env))
-                                .size(12.0)
+                            RichText::new(format!("环境 · {}", state.current_env))
+                                .size(12.5)
                                 .color(theme::text()),
                         )
                         .show_ui(ui, |ui| {
@@ -135,21 +146,22 @@ fn save_dialog(ctx: &egui::Context, state: &mut AppState) {
         .resizable(false)
         .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
         .show(ctx, |ui| {
-            ui.set_min_width(360.0);
+            ui.set_min_width(380.0);
             widgets::hint(ui, "为这个请求起个名字，便于以后在集合中找到它");
-            ui.add_space(6.0);
+            ui.add_space(8.0);
             let default_name = if state.config.url.is_empty() {
                 "未命名请求".to_string()
             } else {
                 state.config.url.clone()
             };
-            let entry = ui.add(
+            let entry = ui.add_sized(
+                [ui.available_width(), 32.0],
                 egui::TextEdit::singleline(&mut state.save_name)
                     .hint_text(&default_name)
-                    .desired_width(f32::INFINITY),
+                    .vertical_align(egui::Align::Center),
             );
 
-            ui.add_space(10.0);
+            ui.add_space(14.0);
             ui.horizontal(|ui| {
                 if widgets::accent_button(ui, "保 存", true).clicked() {
                     let name = if state.save_name.trim().is_empty() {
@@ -192,18 +204,18 @@ fn toast(ctx: &egui::Context, state: &AppState) {
         .interactable(false)
         .show(ctx, |ui| {
             egui::Frame::none()
-                .fill(theme::raised())
-                .rounding(Rounding::same(8.0))
-                .stroke(egui::Stroke::new(1.0, theme::border()))
-                .inner_margin(egui::Margin::symmetric(16.0, 10.0))
+                .fill(theme::panel())
+                .rounding(Rounding::same(10.0))
+                .stroke(Stroke::new(1.0, theme::border()))
+                .inner_margin(egui::Margin::symmetric(18.0, 10.0))
                 .shadow(egui::epaint::Shadow {
-                    offset: egui::vec2(0.0, 4.0),
-                    blur: 16.0,
+                    offset: egui::vec2(0.0, 6.0),
+                    blur: 20.0,
                     spread: 0.0,
-                    color: Color32::from_black_alpha(120),
+                    color: Color32::from_black_alpha(30),
                 })
                 .show(ui, |ui| {
-                    ui.label(RichText::new(&t.text).color(color).size(13.0));
+                    ui.label(RichText::new(&t.text).color(color).size(13.0).strong());
                 });
         });
 }

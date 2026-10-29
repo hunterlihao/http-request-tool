@@ -1,6 +1,6 @@
 //! 可复用的 UI 小组件
 
-use eframe::egui::{self, Color32, Margin, Response, RichText, Rounding, TextEdit};
+use eframe::egui::{self, Color32, Margin, Response, RichText, Rounding, Stroke, TextEdit};
 
 use crate::model::request::KVPair;
 use crate::theme;
@@ -9,7 +9,7 @@ use crate::theme;
 pub fn section_label(ui: &mut egui::Ui, text: &str) {
     ui.label(
         RichText::new(text)
-            .size(12.0)
+            .size(11.5)
             .color(theme::text_dim())
             .strong(),
     );
@@ -18,55 +18,64 @@ pub fn section_label(ui: &mut egui::Ui, text: &str) {
 /// 彩色徽章
 pub fn badge(ui: &mut egui::Ui, text: &str, color: Color32) -> Response {
     egui::Frame::none()
-        .fill(color.gamma_multiply(0.16))
+        .fill(color.gamma_multiply(0.10))
         .rounding(Rounding::same(6.0))
-        .inner_margin(Margin::symmetric(8.0, 3.0))
+        .inner_margin(Margin::symmetric(8.0, 2.0))
         .show(ui, |ui| {
-            ui.label(RichText::new(text).color(color).strong().monospace().size(12.0))
+            ui.label(
+                RichText::new(text)
+                    .color(color)
+                    .strong()
+                    .monospace()
+                    .size(11.5),
+            )
         })
         .response
 }
 
 /// 弱提示文本
 pub fn hint(ui: &mut egui::Ui, text: &str) {
-    ui.label(RichText::new(text).size(12.0).color(theme::text_dim()));
+    ui.label(RichText::new(text).size(11.5).color(theme::text_dim()));
 }
 
 /// 空状态提示（居中、轻量的引导）
 pub fn empty_state(ui: &mut egui::Ui, title: &str, desc: &str) {
-    ui.add_space(24.0);
+    ui.add_space(28.0);
     ui.vertical_centered(|ui| {
-        ui.label(RichText::new(title).size(14.0).color(theme::text_dim()).strong());
-        ui.add_space(4.0);
-        ui.label(RichText::new(desc).size(12.0).color(theme::text_dim()));
+        ui.label(
+            RichText::new(title)
+                .size(13.5)
+                .color(theme::text_dim())
+                .strong(),
+        );
+        ui.add_space(6.0);
+        ui.label(RichText::new(desc).size(12.0).color(theme::text_muted()));
     });
     ui.add_space(16.0);
 }
 
-/// 主操作按钮（琥珀色签发）
+/// 主操作按钮（橙色签发，全屏唯一高饱和元素）
 pub fn accent_button(ui: &mut egui::Ui, text: &str, enabled: bool) -> Response {
-    let text_color = if enabled {
-        theme::on_accent()
+    let (fill, txt) = if enabled {
+        (theme::accent(), theme::on_accent())
     } else {
-        theme::text_dim()
+        (theme::raised(), theme::text_muted())
     };
-    let btn = egui::Button::new(RichText::new(text).strong().color(text_color))
-        .fill(if enabled {
-            theme::accent()
-        } else {
-            theme::raised()
-        })
-        .min_size(egui::vec2(100.0, 30.0))
-        .rounding(Rounding::same(8.0));
+    let btn = egui::Button::new(RichText::new(text).strong().color(txt))
+        .fill(fill)
+        .stroke(Stroke::NONE)
+        .rounding(Rounding::same(8.0))
+        .min_size(egui::vec2(100.0, 32.0));
     ui.add_enabled(enabled, btn)
 }
 
-/// 次要按钮
+/// 次要按钮（白底细描边）
 pub fn subtle_button(ui: &mut egui::Ui, text: &str) -> Response {
-    let btn = egui::Button::new(RichText::new(text).color(theme::text()))
-        .fill(theme::raised())
-        .min_size(egui::vec2(0.0, 28.0))
-        .rounding(Rounding::same(7.0));
+    let btn = egui::Button::new(RichText::new(text).color(theme::text()).size(12.5))
+        .fill(theme::panel())
+        .stroke(Stroke::new(1.0, theme::border()))
+        .rounding(Rounding::same(8.0))
+        .min_size(egui::vec2(0.0, 32.0));
     ui.add(btn)
 }
 
@@ -81,10 +90,10 @@ pub fn kv_editor(
     let mut remove: Option<usize> = None;
 
     let check_w = 24.0;
-    let key_w = 180.0;
+    let key_w = 200.0;
     let del_w = 24.0;
-    let spacing = 8.0;
-    let row_h = 30.0;
+    let spacing = 10.0;
+    let row_h = 32.0;
     let val_w = (ui.available_width() - check_w - key_w - del_w - spacing * 3.0).max(120.0);
 
     fn header(ui: &mut egui::Ui, text: &str, w: f32) {
@@ -96,7 +105,7 @@ pub fn kv_editor(
 
     egui::Grid::new(format!("{id}_grid"))
         .num_columns(4)
-        .spacing([spacing, 6.0])
+        .spacing([spacing, 8.0])
         .show(ui, |ui| {
             header(ui, "启用", check_w);
             header(ui, key_hint, key_w);
@@ -111,16 +120,20 @@ pub fn kv_editor(
                 );
                 ui.add_sized(
                     [key_w, row_h],
-                    TextEdit::singleline(&mut row.key).hint_text("key"),
+                    TextEdit::singleline(&mut row.key)
+                        .hint_text("key")
+                        .vertical_align(egui::Align::Center),
                 );
                 ui.add_sized(
                     [val_w, row_h],
-                    TextEdit::singleline(&mut row.value).hint_text("value"),
+                    TextEdit::singleline(&mut row.value)
+                        .hint_text("value")
+                        .vertical_align(egui::Align::Center),
                 );
                 if ui
                     .add_sized(
                         [del_w, row_h],
-                        egui::Button::new(RichText::new("✕").color(theme::text_dim()))
+                        egui::Button::new(RichText::new("✕").color(theme::text_muted()))
                             .fill(Color32::TRANSPARENT)
                             .frame(false),
                     )
@@ -136,7 +149,7 @@ pub fn kv_editor(
         rows.remove(i);
     }
 
-    ui.add_space(6.0);
+    ui.add_space(8.0);
     if subtle_button(ui, "+ 添加一行").clicked() {
         rows.push(KVPair {
             enabled: true,

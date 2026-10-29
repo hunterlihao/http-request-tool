@@ -36,8 +36,8 @@ fn side_tab_bar(ui: &mut egui::Ui, active: &mut SideTab) {
                 } else {
                     Color32::TRANSPARENT
                 })
-                .rounding(Rounding::same(6.0))
-                .min_size(egui::vec2(0.0, 28.0));
+                .rounding(Rounding::same(8.0))
+                .min_size(egui::vec2(0.0, 30.0));
             if ui.add(btn).clicked() {
                 *active = tab;
             }
@@ -52,7 +52,8 @@ fn history_panel(ui: &mut egui::Ui, state: &mut AppState) {
         ui.add(
             TextEdit::singleline(&mut state.history_search)
                 .hint_text("搜索 URL 或方法")
-                .desired_width(f32::INFINITY),
+                .desired_width(f32::INFINITY)
+                .vertical_align(egui::Align::Center),
         );
     });
     ui.add_space(4.0);
@@ -206,7 +207,8 @@ fn collections_panel(ui: &mut egui::Ui, state: &mut AppState) {
         ui.add(
             TextEdit::singleline(&mut state.new_collection_name)
                 .hint_text("新集合名称")
-                .desired_width(ui.available_width() - 70.0),
+                .desired_width(ui.available_width() - 76.0)
+                .vertical_align(egui::Align::Center),
         );
         if widgets::subtle_button(ui, "新建").clicked() {
             let name = state.new_collection_name.clone();
@@ -381,7 +383,8 @@ fn env_panel(ui: &mut egui::Ui, state: &mut AppState) {
         ui.add(
             TextEdit::singleline(&mut state.new_env_name)
                 .hint_text("新环境名")
-                .desired_width(ui.available_width() - 70.0),
+                .desired_width(ui.available_width() - 76.0)
+                .vertical_align(egui::Align::Center),
         );
         if widgets::subtle_button(ui, "新建").clicked() {
             let name = state.new_env_name.trim().to_string();
@@ -436,13 +439,15 @@ fn env_panel(ui: &mut egui::Ui, state: &mut AppState) {
                             [key_w, row_h],
                             TextEdit::singleline(k)
                                 .hint_text("key")
-                                .font(egui::TextStyle::Monospace),
+                                .font(egui::TextStyle::Monospace)
+                                .vertical_align(egui::Align::Center),
                         );
                         ui.add_sized(
                             [val_w, row_h],
                             TextEdit::singleline(v)
                                 .hint_text("value")
-                                .font(egui::TextStyle::Monospace),
+                                .font(egui::TextStyle::Monospace)
+                                .vertical_align(egui::Align::Center),
                         );
                         if ui
                             .add_sized(

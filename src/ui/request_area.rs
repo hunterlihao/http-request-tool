@@ -54,7 +54,7 @@ fn url_bar(ui: &mut egui::Ui, state: &mut AppState) {
         let send_w = 108.0;
         let url_w = (ui.available_width() - send_w).max(140.0);
         ui.add_sized(
-            [url_w, 30.0],
+            [url_w, 32.0],
             TextEdit::singleline(&mut state.config.url)
                 .hint_text("https://api.example.com/endpoint")
                 .font(egui::TextStyle::Monospace)
@@ -103,8 +103,8 @@ fn tab_bar(ui: &mut egui::Ui, active: &mut RequestTab) {
                 } else {
                     Color32::TRANSPARENT
                 })
-                .rounding(Rounding::same(6.0))
-                .min_size(egui::vec2(0.0, 28.0));
+                .rounding(Rounding::same(8.0))
+                .min_size(egui::vec2(0.0, 30.0));
             if ui.add(btn).clicked() {
                 *active = tab;
             }
@@ -193,7 +193,8 @@ fn body_tab(ui: &mut egui::Ui, state: &mut AppState) {
                 ui.add(
                     TextEdit::singleline(&mut state.config.file_path)
                         .desired_width(f32::INFINITY)
-                        .hint_text("选择要上传的文件"),
+                        .hint_text("选择要上传的文件")
+                        .vertical_align(egui::Align::Center),
                 );
                 if widgets::subtle_button(ui, "浏览…").clicked() {
                     if let Some(path) = rfd::FileDialog::new().pick_file() {
@@ -234,10 +235,19 @@ fn auth_tab(ui: &mut egui::Ui, state: &mut AppState) {
                 .spacing([12.0, 8.0])
                 .show(ui, |ui| {
                     ui.label("用户名");
-                    ui.add(TextEdit::singleline(&mut state.config.auth.username).desired_width(320.0));
+                    ui.add(
+                        TextEdit::singleline(&mut state.config.auth.username)
+                            .desired_width(320.0)
+                            .vertical_align(egui::Align::Center),
+                    );
                     ui.end_row();
                     ui.label("密码");
-                    ui.add(TextEdit::singleline(&mut state.config.auth.password).desired_width(320.0).password(true));
+                    ui.add(
+                        TextEdit::singleline(&mut state.config.auth.password)
+                            .desired_width(320.0)
+                            .password(true)
+                            .vertical_align(egui::Align::Center),
+                    );
                     ui.end_row();
                 });
         }
@@ -246,7 +256,8 @@ fn auth_tab(ui: &mut egui::Ui, state: &mut AppState) {
             ui.add(
                 TextEdit::singleline(&mut state.config.auth.token)
                     .desired_width(f32::INFINITY)
-                    .hint_text("Bearer Token"),
+                    .hint_text("Bearer Token")
+                    .vertical_align(egui::Align::Center),
             );
         }
         AuthType::CustomHeader => {
@@ -258,13 +269,15 @@ fn auth_tab(ui: &mut egui::Ui, state: &mut AppState) {
                     ui.add(
                         TextEdit::singleline(&mut state.config.auth.header_name)
                             .desired_width(320.0)
-                            .hint_text("如 X-API-Key"),
+                            .hint_text("如 X-API-Key")
+                            .vertical_align(egui::Align::Center),
                     );
                     ui.end_row();
                     ui.label("Header 值");
                     ui.add(
                         TextEdit::singleline(&mut state.config.auth.header_value)
-                            .desired_width(320.0),
+                            .desired_width(320.0)
+                            .vertical_align(egui::Align::Center),
                     );
                     ui.end_row();
                 });
@@ -301,7 +314,8 @@ fn advanced_tab(ui: &mut egui::Ui, state: &mut AppState) {
                     ui.add(
                         TextEdit::singleline(&mut state.config.proxy)
                             .desired_width(360.0)
-                            .hint_text("http://127.0.0.1:7890"),
+                            .hint_text("http://127.0.0.1:7890")
+                            .vertical_align(egui::Align::Center),
                     );
                 } else {
                     widgets::hint(ui, "默认跟随系统代理设置");
